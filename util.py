@@ -40,7 +40,14 @@ def save(model, optimizer, scheduler, args, epoch, module_type):
 
 
 def load(fn, module_type, device = torch.device('cuda')):
-    checkpoint = torch.load(fn, map_location=device)
+    # These repository-provided checkpoints contain an argparse.Namespace in
+    # addition to tensor weights. PyTorch 2.6+ defaults to weights_only=True,
+    # so explicitly request the legacy checkpoint format. Older PyTorch
+    # versions do not accept the weights_only keyword.
+    try:
+        checkpoint = torch.load(fn, map_location=device, weights_only=False)
+    except TypeError:
+        checkpoint = torch.load(fn, map_location=device)
     args = checkpoint['args']
     if device == torch.device('cpu'):
         args.use_cuda = False
@@ -65,7 +72,7 @@ def set_optim(args, module, module_type):
         optimizer = torch.optim.Adam(module.parameters(), lr=args.lr_fc)
     else:
         raise(ValueError('Expected module_type to be fr or fc but got {}'.format(module_type)))
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=7, factor=0.5, verbose=True)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=7, factor=0.5)
     return optimizer, scheduler
 
 

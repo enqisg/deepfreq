@@ -20,12 +20,11 @@ params = {
     'xtick.labelsize': 9,
     'ytick.labelsize': 9,
     'axes.labelsize': 11,
-    'text.usetex': True,
-    'text.latex.unicode': True,
+    'text.usetex': False,
     'figure.figsize': [7, 4]
 }
 matplotlib.rcParams.update(params)
-plt.style.use('seaborn-deep')
+plt.style.use('seaborn-v0_8-deep')
 palette = sns.color_palette('deep', 10)
 
 if __name__ == '__main__':
@@ -50,14 +49,15 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    fr_module, _, _, _, _ = util.load(args.fr_path, 'fr')
+    device = torch.device('cpu')
+    fr_module, _, _, _, _ = util.load(args.fr_path, 'fr', device)
     fr_module.cpu()
     fr_module.eval()
     xgrid = np.linspace(-0.5, 0.5, fr_module.fr_size, endpoint=False)
 
     fc_module = None
     if args.fc_path is not None:
-        fc_module, _, _, _, _ = util.load(args.fc_path, 'fc')
+        fc_module, _, _, _, _ = util.load(args.fc_path, 'fc', device)
         fc_module.cpu()
         fc_module.eval()
 
@@ -65,12 +65,12 @@ if __name__ == '__main__':
     psnet_fc_model = None
     psnet_grid = None
     if args.psnet_path is not None:
-        psnet, _, _, _, _ = util.load(args.psnet_path, 'fr')
+        psnet, _, _, _, _ = util.load(args.psnet_path, 'fr', device)
         psnet.cpu()
         psnet.eval()
         psnet_grid = np.linspace(-0.5, 0.5, psnet.fr_size, endpoint=False)
         if args.psnet_fc_path is not None:
-            psnet_fc_model, _, _, _, _ = util.load(args.psnet_fc_path, 'fc')
+            psnet_fc_model, _, _, _, _ = util.load(args.psnet_fc_path, 'fc', device)
             psnet_fc_model.cpu()
             psnet_fc_model.eval()
 
@@ -180,7 +180,9 @@ if __name__ == '__main__':
     if os.path.isfile(os.path.join(args.cblasso_dir, 'fnr')):
         with open(os.path.join(args.cblasso_dir, 'fnr')) as f:
             cblasso_fnr = json.load(f)
-        cblasso_fnr = [cblasso_fnr[str(x)] for x in dB]
+        cblasso_fnr = [cblasso_fnr.get(str(x)) for x in dB]
+        if any(value is None for value in cblasso_fnr):
+            cblasso_fnr = None
     else:
         cblasso_fnr = None
 
@@ -194,7 +196,7 @@ if __name__ == '__main__':
         ax.plot(dB, psnet_fnr_arr, label='PSnet', marker='h', linestyle=':', c=palette[5])
     ax.plot(dB, model_fnr_arr, label='DeepFreq', marker='d', c=palette[3])
     ax.set_xlabel('SNR (dB)')
-    ax.set_ylabel('FNR (\%)')
+    ax.set_ylabel('FNR (%)')
     handles, labels = ax.get_legend_handles_labels()
     ax.legend(handles[::-1], labels[::-1])
     plt.savefig(os.path.join(args.output_dir, 'fnr.pdf'), bbox_inches='tight', pad_inches=0.0)
@@ -211,7 +213,7 @@ if __name__ == '__main__':
             ax.plot(dB, psnet_fc_acc, label='PSnet + counting module', marker='h', linestyle=':', c=palette[5])
         ax.plot(dB, fc_acc, label='DeepFreq', marker='d', c=palette[3])
         ax.set_xlabel('SNR (dB)')
-        ax.set_ylabel('Error (\%)')
+        ax.set_ylabel('Error (%)')
         ax.set_ylim(bottom=0.)
         handles, labels = ax.get_legend_handles_labels()
         ax.legend(handles[::-1], labels[::-1])
@@ -221,7 +223,9 @@ if __name__ == '__main__':
         if os.path.isfile(os.path.join(args.cblasso_dir, 'chamfer')):
             with open(os.path.join(args.cblasso_dir, 'chamfer')) as f:
                 cblasso_chamfer = json.load(f)
-            cblasso_chamfer = [cblasso_chamfer[str(x)] for x in dB]
+            cblasso_chamfer = [cblasso_chamfer.get(str(x)) for x in dB]
+            if any(value is None for value in cblasso_chamfer):
+                cblasso_chamfer = None
         else:
             cblasso_chamfer = None
         fig, ax = plt.subplots()

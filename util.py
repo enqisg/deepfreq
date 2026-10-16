@@ -36,7 +36,7 @@ def save(model, optimizer, scheduler, args, epoch, module_type):
     cp = os.path.join(args.output_dir, module_type, 'last.pth')
     fn = os.path.join(args.output_dir, module_type, 'epoch_'+str(epoch)+'.pth')
     torch.save(checkpoint, fn)
-    symlink_force(fn, cp)
+    symlink_force(os.path.abspath(fn), cp)
 
 
 def load(fn, module_type, device = torch.device('cuda')):

@@ -137,5 +137,6 @@ class FrequencyCountingModule(nn.Module):
         inp = inp[:, None]
         x = self.mod(inp)
         x = x.view(bsz, -1)
+        x = x[:, :self.out_layer.in_features]
         y = self.out_layer(x)
         return y

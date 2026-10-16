@@ -1,0 +1,10 @@
+{
+  "data_dir": "test_dataset",
+  "fr_path": "pretrained_models/DeepFreq/frequency_representation_module.pth",
+  "fc_path": "pretrained_models/DeepFreq/frequency_counting_module.pth",
+  "psnet_path": null,
+  "psnet_fc_path": null,
+  "cblasso_dir": "test_dataset/cblasso_results",
+  "output_dir": "results/pretrained",
+  "overwrite": false
+}

@@ -1,0 +1,20 @@
+{
+  "output_dir": "test_dataset_low_snr",
+  "overwrite": false,
+  "n_test": 1000,
+  "signal_dimension": 50,
+  "minimum_separation": 1.0,
+  "max_freq": 10,
+  "distance": "normal",
+  "amplitude": "normal_floor",
+  "floor_amplitude": 0.1,
+  "dB": [
+    "-5",
+    "0",
+    "5",
+    "10",
+    "20"
+  ],
+  "numpy_seed": 105,
+  "torch_seed": 94
+}

@@ -1,0 +1,10 @@
+{
+  "data_dir": "test_dataset",
+  "fr_path": "checkpoint/finetune_experiment/fr/last.pth",
+  "fc_path": "checkpoint/finetune_experiment/fc/last.pth",
+  "psnet_path": null,
+  "psnet_fc_path": null,
+  "cblasso_dir": "test_dataset/cblasso_results",
+  "output_dir": "results/finetuned",
+  "overwrite": true
+}

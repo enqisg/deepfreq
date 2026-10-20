@@ -103,3 +103,6 @@ venv.bak/
 # mypy
 .mypy_cache/
 .DS_Store
+
+# large regenerable training cache (rebuilt automatically by e3_train_variants.py)
+experiments/train_cache.npz

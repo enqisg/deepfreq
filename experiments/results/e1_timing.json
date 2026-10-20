@@ -1,0 +1,8 @@
+{
+  "DeepFreq FR+FC, batch=1 (ms)": 4.930340195001008,
+  "DeepFreq FR+FC, batch=1000 (ms per signal)": 1.8597976720002407,
+  "ESPRIT (ms per signal)": 0.28023689000292507,
+  "MUSIC 1000-pt grid (ms per signal)": 1.6639956749986595,
+  "MDL count (ms per signal)": 0.3376412450006683,
+  "NLS refine, 10 iters (ms per signal)": 1.2564929749987641
+}

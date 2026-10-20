@@ -1,0 +1,16 @@
+{
+  "DeepFreq FR+FC eager, batch 1000, 4 thr (ms/signal)": 1.109264782999162,
+  "DeepFreq FR+FC frozen, batch 1000, 4 thr (ms/signal)": 0.6256637269998464,
+  "DeepFreq FR+FC eager, batch 1, 4 thr (ms)": 6.716096436666703,
+  "DeepFreq FR+FC frozen, batch 1, 4 thr (ms)": 3.376652943331161,
+  "DeepFreq FR+FC eager, batch 1000, 1 thr (ms/signal)": 2.5776436730002388,
+  "DeepFreq FR+FC frozen, batch 1000, 1 thr (ms/signal)": 2.0290883659999963,
+  "DeepFreq FR+FC eager, batch 1, 1 thr (ms)": 5.879228706665647,
+  "DeepFreq FR+FC frozen, batch 1, 1 thr (ms)": 2.9852797500007,
+  "Peak picking on 1000-pt FR (ms/signal)": 0.026714639000601892,
+  "Peak picking + interpolation (ms/signal)": 0.06034350699974311,
+  "NLS refine 10 it (ms/signal)": 1.3616249466667796,
+  "ESPRIT, known K (ms/signal)": 0.44089856999865634,
+  "MUSIC 1000-pt grid, known K (ms/signal)": 1.7033074833337498,
+  "MDL count (ms/signal)": 0.3517861366647897
+}

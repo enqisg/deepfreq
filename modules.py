@@ -37,7 +37,9 @@ def set_fc_module(args):
                                       downsampling=args.fc_downsampling, kernel_in=args.fc_kernel_in)
     elif args.fc_module_type == 'classification':
         net = FrequencyCountingModule(n_output=args.max_num_freq, n_layers=args.fc_n_layers,
-                                      n_filters=args.fc_n_filters)
+                                      n_filters=args.fc_n_filters, kernel_size=args.fc_kernel_size,
+                                      fr_size=args.fr_size, downsampling=args.fc_downsampling,
+                                      kernel_in=args.fc_kernel_in)
     else:
         NotImplementedError('Counter module type not implemented')
     if args.use_cuda:

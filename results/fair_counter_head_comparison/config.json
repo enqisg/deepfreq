@@ -1,0 +1,10 @@
+{
+  "seed": 20261017,
+  "n_train": 10000,
+  "n_valid": 2000,
+  "max_epochs": 50,
+  "learning_rate": 0.001,
+  "noise": "gaussian_blind",
+  "snr_linear": 1.0,
+  "feature_source": "fine-tuned FR and FC body, epoch 310"
+}

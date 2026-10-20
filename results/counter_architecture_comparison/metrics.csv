@@ -1,0 +1,7 @@
+model,snr_db,count_accuracy_percent,full_pipeline_chamfer_error
+Original regression,10,42.9,0.06646189048620568
+Fine-tuned regression,10,49.4,0.05794791782556078
+Classification counter,10,30.0,0.08785278895151137
+Original regression,20,61.6,0.03320027428815258
+Fine-tuned regression,20,75.6,0.02157781645267014
+Classification counter,20,29.299999999999997,0.061858511703608794

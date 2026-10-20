@@ -1,0 +1,5 @@
+head,test_snr_db,selected_epoch,count_accuracy_percent,chamfer_error
+regression,10,48,51.9,0.05558677447257912
+classification,10,49,38.0,0.07128466875320173
+regression,20,48,80.10000000000001,0.01962408991745789
+classification,20,49,40.8,0.04048005102701788

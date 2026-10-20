@@ -1,0 +1,11 @@
+{
+  "seed": 20261017,
+  "n_training": 10000,
+  "n_validation": 2000,
+  "batch_size": 128,
+  "epochs": 10,
+  "learning_rate": 0.0001,
+  "snr_linear": 1.0,
+  "noise": "gaussian_blind",
+  "max_num_freq": 10
+}

@@ -89,7 +89,8 @@ At 20 dB (from the result files):
 
 - **Location (E1):** with the true count, DeepFreq's FNR is ~1.2 % at 20 dB vs
   5.3 % for ESPRIT and 8.0 % for MUSIC. NLS refinement cuts DeepFreq's median
-  error by about 40 % (0.028 → 0.017 bins) for ~1.3 ms per signal.
+  error by about 1.6× at 20 dB (0.028 → 0.017 bins), rising to 3.6–7× at
+  30–50 dB (0.023 → 0.0064 bins at 30 dB), for ~1.3 ms per signal.
 - **Counting (E2):** counting is the main source of error. Exact count accuracy
   at 0 / 20 / 50 dB: FC 22.4 / 75.6 / 84.4 %, MDL 11.0 / 59.6 / 97.0 %,
   NLS-BIC 17.3 / 87.6 / 48.1 %, fusion MLP 29.9 / 83.6 / 93.5 %. The fusion
@@ -101,3 +102,52 @@ At 20 dB (from the result files):
 - **Speed (E4):** freezing with TorchScript roughly halves FR+FC time on CPU
   (1.11 → 0.63 ms per signal at batch 1000; 6.7 → 3.4 ms at batch 1), making
   DeepFreq faster per signal than MUSIC (1.7 ms) and close to ESPRIT (0.44 ms).
+
+## E6 – Improved DeepFreq built from the fine-tuned model
+
+`e6_improved_finetune.py` and `e6_compare.py` combine the three improvements
+and compare the result with the original fine-tuned model (which is kept
+unchanged in `checkpoint/finetune_experiment/`).
+
+1. **FR model, trained further:** starts from `checkpoint/finetune_experiment/fr/epoch_310.pth`
+   and trains 30k more steps with the E3 recipe (100k cached signals,
+   gaussian_blind noise, Gaussian target std 0.3/50, Adam, OneCycle with
+   max learning rate 3e-4, batch 256). FNR with the true count is checked
+   at 0/10/20/30 dB every 10 % of training and the best checkpoint is kept →
+   `checkpoint/improved_experiment/fr/best.pth` (same format as the original,
+   loads with `util.load`) and `fr/train_log.json`. 48 min on the iMac GPU (MPS).
+2. **Counter:** the E2 fusion counter retrained on features from the new FR model
+   (FC output still from the unchanged fine-tuned FC model) →
+   `checkpoint/improved_experiment/fusion_counter.pt`.
+3. **Clean-up:** peak interpolation + NLS refinement (`common.py`).
+
+`e6_compare.py` evaluates three systems on both test sets:
+(a) *Original fine-tuned* (FR + FC + `find_freq`), (b) *Original + counter + clean-up*
+(original FR + E2 fusion counter + NLS) and (c) *Improved* (new FR + new counter + NLS)
+→ `results/e6_comparison.csv`, `results/e6_timing.json`, figures
+`fig7_compare_fnr.png`, `fig8_compare_count.png`, `fig9_compare_chamfer.png`.
+
+Rerun from the repository root:
+
+```bash
+STEPS=30000 python experiments/e6_improved_finetune.py fr      # ~50 min on MPS
+python experiments/e6_improved_finetune.py counter
+python experiments/e6_compare.py
+```
+
+Results (FNR with true count % / count accuracy % / full-pipeline Chamfer):
+
+| SNR | Original fine-tuned | Original + counter + clean-up | Improved |
+|---|---|---|---|
+| 0 dB | 23.3 / 22.4 / 0.205 | 23.6 / 29.9 / 0.195 | 23.4 / 29.7 / 0.182 |
+| 10 dB | 6.19 / 49.3 / 0.057 | 6.19 / 54.2 / 0.053 | 6.18 / 57.0 / 0.052 |
+| 20 dB | 1.23 / 75.6 / 0.022 | 1.23 / 83.6 / 0.015 | 1.00 / 84.4 / 0.015 |
+| 30 dB | 0.74 / 84.1 / 0.013 | 0.64 / 90.8 / 0.0068 | 0.47 / 92.6 / 0.0066 |
+| 50 dB | 0.62 / 84.4 / 0.013 | 0.55 / 93.5 / 0.0054 | 0.47 / 96.3 / 0.0051 |
+
+Most of the gain over the original comes from the new counter and the NLS
+clean-up (Chamfer error roughly halves at 25 dB and above). The extra FR
+training adds a smaller gain (FNR 1.23 → 1.00 % at 20 dB, 0.74 → 0.47 % at
+30 dB). Note the best FR checkpoint was picked on the 0/10/20/30 dB test sets
+(as in E3), so that small FR gain is slightly optimistic. CPU time per signal
+(batch 1000, 4 threads): 4.8 ms original vs 5.2 ms improved.

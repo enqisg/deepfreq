@@ -1,0 +1,16 @@
+eqfr8x64_s0 250 216.527 52.4 {0: {'fnr': np.float64(59.603)}, 10: {'fnr': np.float64(50.915)}, 20: {'fnr': np.float64(49.426)}, 30: {'fnr': np.float64(49.638)}}
+eqfr8x64_s0 500 94.658 48.59 {0: {'fnr': np.float64(54.03)}, 10: {'fnr': np.float64(46.759)}, 20: {'fnr': np.float64(46.726)}, 30: {'fnr': np.float64(46.861)}}
+eqfr8x64_s0 750 64.416 45.22 {0: {'fnr': np.float64(48.759)}, 10: {'fnr': np.float64(44.254)}, 20: {'fnr': np.float64(43.835)}, 30: {'fnr': np.float64(44.029)}}
+eqfr8x64_s0 1000 45.816 44.74 {0: {'fnr': np.float64(48.082)}, 10: {'fnr': np.float64(43.514)}, 20: {'fnr': np.float64(43.825)}, 30: {'fnr': np.float64(43.532)}}
+eqfr8x64_s0 1250 42.157 44.91 {0: {'fnr': np.float64(46.93)}, 10: {'fnr': np.float64(44.01)}, 20: {'fnr': np.float64(44.232)}, 30: {'fnr': np.float64(44.462)}}
+eqfr8x64_s0 1500 38.003 44.81 {0: {'fnr': np.float64(47.979)}, 10: {'fnr': np.float64(43.558)}, 20: {'fnr': np.float64(43.852)}, 30: {'fnr': np.float64(43.866)}}
+eqfr8x64_s0 1750 32.698 44.86 {0: {'fnr': np.float64(46.462)}, 10: {'fnr': np.float64(44.501)}, 20: {'fnr': np.float64(43.789)}, 30: {'fnr': np.float64(44.671)}}
+eqfr8x64_s0 2000 29.78 45.32 {0: {'fnr': np.float64(46.495)}, 10: {'fnr': np.float64(44.367)}, 20: {'fnr': np.float64(45.088)}, 30: {'fnr': np.float64(45.331)}}
+eqfr8x64_s0 2250 27.582 45.27 {0: {'fnr': np.float64(46.539)}, 10: {'fnr': np.float64(44.374)}, 20: {'fnr': np.float64(45.155)}, 30: {'fnr': np.float64(45.021)}}
+eqfr8x64_s0 2500 27.609 44.55 {0: {'fnr': np.float64(46.168)}, 10: {'fnr': np.float64(43.559)}, 20: {'fnr': np.float64(44.092)}, 30: {'fnr': np.float64(44.366)}}
+eqfr8x64_s0 2750 26.606 45.02 {0: {'fnr': np.float64(46.102)}, 10: {'fnr': np.float64(44.412)}, 20: {'fnr': np.float64(44.848)}, 30: {'fnr': np.float64(44.706)}}
+eqfr8x64_s0 3000 26.05 45.15 {0: {'fnr': np.float64(46.54)}, 10: {'fnr': np.float64(44.478)}, 20: {'fnr': np.float64(44.557)}, 30: {'fnr': np.float64(45.023)}}
+eqfr8x64_s0 3250 23.154 44.84 {0: {'fnr': np.float64(46.275)}, 10: {'fnr': np.float64(43.82)}, 20: {'fnr': np.float64(44.61)}, 30: {'fnr': np.float64(44.638)}}
+eqfr8x64_s0 3500 23.318 45.0 {0: {'fnr': np.float64(46.463)}, 10: {'fnr': np.float64(44.161)}, 20: {'fnr': np.float64(44.763)}, 30: {'fnr': np.float64(44.612)}}
+eqfr8x64_s0 3750 23.532 44.86 {0: {'fnr': np.float64(46.553)}, 10: {'fnr': np.float64(43.996)}, 20: {'fnr': np.float64(44.636)}, 30: {'fnr': np.float64(44.255)}}
+eqfr8x64_s0 4000 25.791 45.11 {0: {'fnr': np.float64(46.542)}, 10: {'fnr': np.float64(44.302)}, 20: {'fnr': np.float64(44.828)}, 30: {'fnr': np.float64(44.774)}}

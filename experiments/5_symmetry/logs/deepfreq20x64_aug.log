@@ -1,0 +1,16 @@
+deepfreq20x64_aug_s0 250 40.735 90.13 {0: {'fnr': np.float64(90.695)}, 10: {'fnr': np.float64(89.963)}, 20: {'fnr': np.float64(89.866)}, 30: {'fnr': np.float64(89.995)}}
+deepfreq20x64_aug_s0 500 39.002 89.73 {0: {'fnr': np.float64(90.147)}, 10: {'fnr': np.float64(89.274)}, 20: {'fnr': np.float64(89.863)}, 30: {'fnr': np.float64(89.626)}}
+deepfreq20x64_aug_s0 750 39.293 89.89 {0: {'fnr': np.float64(90.106)}, 10: {'fnr': np.float64(89.517)}, 20: {'fnr': np.float64(90.063)}, 30: {'fnr': np.float64(89.856)}}
+deepfreq20x64_aug_s0 1000 36.574 90.29 {0: {'fnr': np.float64(91.641)}, 10: {'fnr': np.float64(89.887)}, 20: {'fnr': np.float64(90.047)}, 30: {'fnr': np.float64(89.586)}}
+deepfreq20x64_aug_s0 1250 38.542 90.11 {0: {'fnr': np.float64(90.454)}, 10: {'fnr': np.float64(89.9)}, 20: {'fnr': np.float64(90.214)}, 30: {'fnr': np.float64(89.881)}}
+deepfreq20x64_aug_s0 1500 38.936 90.59 {0: {'fnr': np.float64(91.4)}, 10: {'fnr': np.float64(90.274)}, 20: {'fnr': np.float64(90.429)}, 30: {'fnr': np.float64(90.241)}}
+deepfreq20x64_aug_s0 1750 38.067 90.46 {0: {'fnr': np.float64(91.896)}, 10: {'fnr': np.float64(89.818)}, 20: {'fnr': np.float64(90.048)}, 30: {'fnr': np.float64(90.088)}}
+deepfreq20x64_aug_s0 2000 38.719 90.41 {0: {'fnr': np.float64(89.905)}, 10: {'fnr': np.float64(90.522)}, 20: {'fnr': np.float64(90.749)}, 30: {'fnr': np.float64(90.475)}}
+deepfreq20x64_aug_s0 2250 38.009 90.62 {0: {'fnr': np.float64(90.856)}, 10: {'fnr': np.float64(90.617)}, 20: {'fnr': np.float64(90.621)}, 30: {'fnr': np.float64(90.369)}}
+deepfreq20x64_aug_s0 2500 38.524 89.71 {0: {'fnr': np.float64(90.233)}, 10: {'fnr': np.float64(89.524)}, 20: {'fnr': np.float64(89.408)}, 30: {'fnr': np.float64(89.683)}}
+deepfreq20x64_aug_s0 2750 38.297 89.68 {0: {'fnr': np.float64(90.814)}, 10: {'fnr': np.float64(89.526)}, 20: {'fnr': np.float64(89.314)}, 30: {'fnr': np.float64(89.051)}}
+deepfreq20x64_aug_s0 3000 38.923 89.36 {0: {'fnr': np.float64(89.664)}, 10: {'fnr': np.float64(89.618)}, 20: {'fnr': np.float64(89.082)}, 30: {'fnr': np.float64(89.067)}}
+deepfreq20x64_aug_s0 3250 36.153 89.15 {0: {'fnr': np.float64(90.101)}, 10: {'fnr': np.float64(88.981)}, 20: {'fnr': np.float64(89.006)}, 30: {'fnr': np.float64(88.518)}}
+deepfreq20x64_aug_s0 3500 36.951 89.38 {0: {'fnr': np.float64(90.436)}, 10: {'fnr': np.float64(89.461)}, 20: {'fnr': np.float64(88.825)}, 30: {'fnr': np.float64(88.817)}}
+deepfreq20x64_aug_s0 3750 36.608 89.28 {0: {'fnr': np.float64(89.754)}, 10: {'fnr': np.float64(89.151)}, 20: {'fnr': np.float64(89.291)}, 30: {'fnr': np.float64(88.928)}}
+deepfreq20x64_aug_s0 4000 39.534 89.43 {0: {'fnr': np.float64(89.856)}, 10: {'fnr': np.float64(89.512)}, 20: {'fnr': np.float64(89.327)}, 30: {'fnr': np.float64(89.024)}}

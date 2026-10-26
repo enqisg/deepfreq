@@ -106,3 +106,5 @@ venv.bak/
 
 # large regenerable training cache (rebuilt automatically by e3_train_variants.py)
 experiments/train_cache.npz
+experiments/train_cache_f.npz
+experiments/val_cache.npz

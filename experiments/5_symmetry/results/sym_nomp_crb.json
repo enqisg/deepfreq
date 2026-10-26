@@ -1,0 +1,120 @@
+{
+ "-5": {
+  "nomp_oracle_fnr": 47.270873015873015,
+  "nomp_oracle_median_err_bins": 0.7933782115501581,
+  "nomp_cfar_count_acc": 10.8,
+  "nomp_cfar_chamfer": 0.628739379385881,
+  "nomp_cfar_median_err_bins": 4.019024164904761,
+  "nomp_ms_per_signal": 10.564536571502686
+ },
+ "0": {
+  "nomp_oracle_fnr": 30.39785714285714,
+  "nomp_oracle_median_err_bins": 0.21232274118590244,
+  "nomp_cfar_count_acc": 17.0,
+  "nomp_cfar_chamfer": 0.27370546543277824,
+  "nomp_cfar_median_err_bins": 1.4930140246631725,
+  "nomp_ms_per_signal": 10.489709615707397,
+  "crb_median_std_bins": 0.24001026940801878,
+  "crb_median_abs_err_bins": 0.16188692671570867
+ },
+ "5": {
+  "nomp_oracle_fnr": 16.9465873015873,
+  "nomp_oracle_median_err_bins": 0.09960399893188532,
+  "nomp_cfar_count_acc": 29.4,
+  "nomp_cfar_chamfer": 0.11808180358223644,
+  "nomp_cfar_median_err_bins": 0.12507060983604767,
+  "nomp_ms_per_signal": 10.490787744522095,
+  "crb_median_std_bins": 0.1349676929581979,
+  "crb_median_abs_err_bins": 0.09103570890030449
+ },
+ "10": {
+  "nomp_oracle_fnr": 8.372817460317462,
+  "nomp_oracle_median_err_bins": 0.05332987542498724,
+  "nomp_cfar_count_acc": 45.2,
+  "nomp_cfar_chamfer": 0.056373265996007185,
+  "nomp_cfar_median_err_bins": 0.056676377804254496,
+  "nomp_ms_per_signal": 10.814048290252686,
+  "crb_median_std_bins": 0.07589791131599716,
+  "crb_median_abs_err_bins": 0.05119314118264008
+ },
+ "15": {
+  "nomp_oracle_fnr": 3.0979761904761904,
+  "nomp_oracle_median_err_bins": 0.029292660109836444,
+  "nomp_cfar_count_acc": 66.8,
+  "nomp_cfar_chamfer": 0.028768780813638293,
+  "nomp_cfar_median_err_bins": 0.030455725734007677,
+  "nomp_ms_per_signal": 10.572739601135254,
+  "crb_median_std_bins": 0.04268053202861741,
+  "crb_median_abs_err_bins": 0.02878801885330244
+ },
+ "20": {
+  "nomp_oracle_fnr": 0.9321825396825396,
+  "nomp_oracle_median_err_bins": 0.01661607686632427,
+  "nomp_cfar_count_acc": 86.4,
+  "nomp_cfar_chamfer": 0.014653054261319244,
+  "nomp_cfar_median_err_bins": 0.016917519463996444,
+  "nomp_ms_per_signal": 10.436498165130615,
+  "crb_median_std_bins": 0.02400102694080186,
+  "crb_median_abs_err_bins": 0.016188692671570856
+ },
+ "25": {
+  "nomp_oracle_fnr": 0.28579365079365077,
+  "nomp_oracle_median_err_bins": 0.009664452108354427,
+  "nomp_cfar_count_acc": 95.5,
+  "nomp_cfar_chamfer": 0.009443349767693327,
+  "nomp_cfar_median_err_bins": 0.009710044220953562,
+  "nomp_ms_per_signal": 10.68660855293274,
+  "crb_median_std_bins": 0.013496769295819786,
+  "crb_median_abs_err_bins": 0.009103570890030445
+ },
+ "30": {
+  "nomp_oracle_fnr": 0.1838888888888889,
+  "nomp_oracle_median_err_bins": 0.005661003412726906,
+  "nomp_cfar_count_acc": 95.19999999999999,
+  "nomp_cfar_chamfer": 0.007026892505435805,
+  "nomp_cfar_median_err_bins": 0.005617398553778297,
+  "nomp_ms_per_signal": 10.596845388412476,
+  "crb_median_std_bins": 0.007589791131599712,
+  "crb_median_abs_err_bins": 0.005119314118264006
+ },
+ "35": {
+  "nomp_oracle_fnr": 0.16777777777777778,
+  "nomp_oracle_median_err_bins": 0.0036600465172967334,
+  "nomp_cfar_count_acc": 91.8,
+  "nomp_cfar_chamfer": 0.009347201489705009,
+  "nomp_cfar_median_err_bins": 0.0036093083667587678,
+  "nomp_ms_per_signal": 10.759845972061157,
+  "crb_median_std_bins": 0.004268053202861744,
+  "crb_median_abs_err_bins": 0.002878801885330246
+ },
+ "40": {
+  "nomp_oracle_fnr": 0.17888888888888888,
+  "nomp_oracle_median_err_bins": 0.002384387698334267,
+  "nomp_cfar_count_acc": 87.7,
+  "nomp_cfar_chamfer": 0.007490817834781831,
+  "nomp_cfar_median_err_bins": 0.0023054124866112025,
+  "nomp_ms_per_signal": 10.573440074920654,
+  "crb_median_std_bins": 0.002400102694080185,
+  "crb_median_abs_err_bins": 0.0016188692671570849
+ },
+ "45": {
+  "nomp_oracle_fnr": 0.17888888888888888,
+  "nomp_oracle_median_err_bins": 0.0015838050590619157,
+  "nomp_cfar_count_acc": 81.5,
+  "nomp_cfar_chamfer": 0.009098890760750794,
+  "nomp_cfar_median_err_bins": 0.0014596322953169816,
+  "nomp_ms_per_signal": 10.61194133758545,
+  "crb_median_std_bins": 0.0013496769295819788,
+  "crb_median_abs_err_bins": 0.0009103570890030447
+ },
+ "50": {
+  "nomp_oracle_fnr": 0.16777777777777778,
+  "nomp_oracle_median_err_bins": 0.0011346342854601232,
+  "nomp_cfar_count_acc": 76.5,
+  "nomp_cfar_chamfer": 0.010627444053238193,
+  "nomp_cfar_median_err_bins": 0.0009637181054525379,
+  "nomp_ms_per_signal": 10.51490569114685,
+  "crb_median_std_bins": 0.0007589791131599717,
+  "crb_median_abs_err_bins": 0.000511931411826401
+ }
+}

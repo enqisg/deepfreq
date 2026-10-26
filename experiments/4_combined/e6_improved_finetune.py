@@ -11,12 +11,17 @@ Stage "counter": retrain the E2 fusion counter (same features, MLP, data and
 schedule) using the new FR model; the FC output still comes from the unchanged
 fine-tuned FC model.
 
+Stage "counter_small": the same counter retraining for the small 8-layer,
+32-filter FR design from E3/E5 (experiments/3_fr_designs/models/deepfreq8x32_long.pt),
+i.e. the version of improvement 3 that changes the FR layers.
+
 Usage (from the repository root):
-  STEPS=30000 python experiments/e6_improved_finetune.py fr
-  python experiments/e6_improved_finetune.py counter
-  python experiments/e6_improved_finetune.py probe     # time 200 steps only
+  STEPS=30000 python experiments/4_combined/e6_improved_finetune.py fr
+  python experiments/4_combined/e6_improved_finetune.py counter
+  python experiments/4_combined/e6_improved_finetune.py counter_small
+  python experiments/4_combined/e6_improved_finetune.py probe     # time 200 steps only
 Uses CUDA or Apple MPS automatically when available.  Nothing in
-checkpoint/finetune_experiment/ or experiments/checkpoints/ is modified.
+checkpoint/finetune_experiment/ or the other experiment folders is modified.
 """
 
 import copy
@@ -29,17 +34,29 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from common import ROOT, FINETUNED
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # experiments/: common.py, fr_variants.py
+from common import ROOT, EXP, FINETUNED
 from e3_train_variants import DEVICE, N_TRAIN, BATCH, training_set, quick_val
 from e2_counting import Counter, features, make_split
+from fr_variants import VARIANTS
 from data.noise import noise_torch
 import util
 
 STEPS = int(os.environ.get("STEPS", 30000))
 MAX_LR = 3e-4
-OUT = ROOT / "checkpoint" / "improved_experiment"
+OUT = EXP / "4_combined" / "models"
 FR_PATH = OUT / "fr" / "best.pth"
 COUNTER_PATH = OUT / "fusion_counter.pt"
+SMALL_FR_PATH = EXP / "3_fr_designs" / "models" / "deepfreq8x32_long.pt"
+SMALL_COUNTER_PATH = OUT / "small_fr_fusion_counter.pt"
+
+
+def load_small_fr():
+    model = VARIANTS["deepfreq8x32"]()
+    model.load_state_dict(torch.load(SMALL_FR_PATH, map_location="cpu"))
+    return model.eval()
 
 
 def train_fr(steps, save=True):
@@ -94,10 +111,9 @@ def train_fr(steps, save=True):
     print("saved", FR_PATH, "best step", best_step, "mean FNR", best, "minutes", minutes, flush=True)
 
 
-def train_counter():
-    """Same as the fusion-counter part of e2_counting.main, with the new FR."""
+def train_counter(fr_model, out_path):
+    """Same as the fusion-counter part of e2_counting.main, with another FR."""
     torch.set_num_threads(2)
-    fr_model = util.load(str(FR_PATH), "fr", torch.device("cpu"))[0].eval()
     fc_model = util.load(str(FINETUNED[1]), "fc", torch.device("cpu"))[0].eval()
     tr_s, tr_rep, tr_raw, tr_n = make_split(60_000, 11, fr_model, fc_model)
     va_s, va_rep, va_raw, va_n = make_split(3_000, 12, fr_model, fc_model)
@@ -125,7 +141,7 @@ def train_counter():
             best, best_state = acc, {k: v.clone() for k, v in net.state_dict().items()}
         if epoch % 10 == 0:
             print("mlp epoch", epoch, "val acc", acc, flush=True)
-    torch.save({"state": best_state, "mu": mu, "sd": sd}, COUNTER_PATH)
+    torch.save({"state": best_state, "mu": mu, "sd": sd}, out_path)
     print("fusion val acc", best, "| fc val acc", (np.clip(np.rint(va_raw), 1, 10) == va_n).mean(), flush=True)
 
 
@@ -139,6 +155,8 @@ if __name__ == "__main__":
     elif stage == "fr":
         train_fr(STEPS)
     elif stage == "counter":
-        train_counter()
+        train_counter(util.load(str(FR_PATH), "fr", torch.device("cpu"))[0].eval(), COUNTER_PATH)
+    elif stage == "counter_small":
+        train_counter(load_small_fr(), SMALL_COUNTER_PATH)
     else:
-        raise SystemExit("stage must be fr, counter or probe")
+        raise SystemExit("stage must be fr, counter, counter_small or probe")

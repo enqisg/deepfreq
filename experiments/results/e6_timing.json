@@ -1,7 +1,0 @@
-{
- "ms_per_signal_cpu_batch1000": {
-  "Original fine-tuned": 4.785286916187033,
-  "Improved": 5.248241334222257
- },
- "threads": 4
-}

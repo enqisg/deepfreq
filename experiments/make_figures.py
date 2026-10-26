@@ -1,4 +1,6 @@
-"""Draw the figures used in the write-up from the CSV/JSON results."""
+"""Draw figures 1-6 of the write-up from the E1/E2/E3/E5 result files.
+Each figure is saved in the results/figures/ folder of its experiment.
+(Figures 7-9 are drawn by 4_combined/e6_compare.py.)"""
 
 import csv
 import json
@@ -7,11 +9,11 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from common import ROOT
+from common import EXP
 
-RES = ROOT / "experiments" / "results"
-FIG = RES / "figures"
-FIG.mkdir(parents=True, exist_ok=True)
+E1, E2, E3 = (EXP / d / "results" for d in ("1_cleanup_step", "2_new_counter", "3_fr_designs"))
+for d in (E1, E2, E3):
+    (d / "figures").mkdir(parents=True, exist_ok=True)
 plt.rcParams.update({"font.size": 10, "axes.grid": True, "grid.alpha": 0.3, "figure.dpi": 150})
 
 
@@ -21,8 +23,8 @@ def series(rows, method, setting, key):
     return zip(*sorted(pts))
 
 
-e1 = list(csv.DictReader(open(RES / "e1_baselines_and_refinement.csv")))
-e2 = list(csv.DictReader(open(RES / "e2_counting.csv")))
+e1 = list(csv.DictReader(open(E1 / "e1_baselines_and_refinement.csv")))
+e2 = list(csv.DictReader(open(E2 / "e2_counting.csv")))
 
 # 1. Oracle-count detection: FNR vs SNR
 fig, ax = plt.subplots(figsize=(6, 3.6))
@@ -33,7 +35,7 @@ ax.set(xlabel="SNR (dB)", ylabel="False negative rate (%)", yscale="log",
        title="Frequency detection with the true count given")
 ax.legend(fontsize=8)
 fig.tight_layout()
-fig.savefig(FIG / "fig1_fnr_oracle.png")
+fig.savefig(E1 / "figures" / "fig1_fnr_oracle.png")
 
 # 2. Precision: median error vs SNR, showing NLS refinement
 fig, ax = plt.subplots(figsize=(6, 3.6))
@@ -44,7 +46,7 @@ ax.set(xlabel="SNR (dB)", ylabel="Median error (DFT bins, 1/N)", yscale="log",
        title="Frequency precision with the true count given")
 ax.legend(fontsize=8)
 fig.tight_layout()
-fig.savefig(FIG / "fig2_precision_refinement.png")
+fig.savefig(E1 / "figures" / "fig2_precision_refinement.png")
 
 # 3. Counting accuracy by counter
 fig, ax = plt.subplots(figsize=(6, 3.6))
@@ -55,7 +57,7 @@ for c, st in [("MDL", "^--"), ("FC regression (fine-tuned)", "d-"), ("NLS-BIC", 
 ax.set(xlabel="SNR (dB)", ylabel="Exact count accuracy (%)", title="Counting the frequencies")
 ax.legend(fontsize=8)
 fig.tight_layout()
-fig.savefig(FIG / "fig3_counting.png")
+fig.savefig(E2 / "figures" / "fig3_counting.png")
 
 # 4. Full pipeline Chamfer error
 fig, ax = plt.subplots(figsize=(6, 3.6))
@@ -67,20 +69,20 @@ ax.plot(*zip(*pts), "o-", label="+ fusion counter + NLS refine (proposed)", ms=4
 ax.set(xlabel="SNR (dB)", ylabel="Chamfer error", yscale="log", title="Complete pipeline (count + locate)")
 ax.legend(fontsize=8)
 fig.tight_layout()
-fig.savefig(FIG / "fig4_full_pipeline.png")
+fig.savefig(E1 / "figures" / "fig4_full_pipeline.png")
 
 # 5. Architecture screening curves (equal 4k-step CPU budget)
 fig, ax = plt.subplots(figsize=(6, 3.6))
 for n in ["deepfreq20x64", "resfreq10x64", "attn2x64", "deepfreq8x32", "dilated4x32"]:
-    log = json.load(open(ROOT / "experiments" / "checkpoints" / f"{n}_log.json"))
+    log = json.load(open(EXP / "3_fr_designs" / "models" / f"{n}_log.json"))
     ax.plot([e["step"] for e in log], [e["fnr_by_snr"]["20"] for e in log], "o-", ms=3, label=n)
 ax.axhline(1.25, color="k", ls=":", lw=1, label="pretrained DeepFreq (~156k steps)")
 ax.set(xlabel="Training step", ylabel="FNR at 20 dB (%)", title="Early training speed, same budget")
 ax.legend(fontsize=8)
 fig.tight_layout()
-fig.savefig(FIG / "fig5_arch_screening.png")
+fig.savefig(E3 / "figures" / "fig5_arch_screening.png")
 
-long_path = RES / "e5_long_runs.json"
+long_path = E3 / "e5_long_runs.json"
 if long_path.exists():
     long = json.load(open(long_path))
     fig, ax = plt.subplots(figsize=(6, 3.6))
@@ -91,5 +93,5 @@ if long_path.exists():
            title="Architectures trained 60k steps (Mac GPU)")
     ax.legend(fontsize=8)
     fig.tight_layout()
-    fig.savefig(FIG / "fig6_arch_long.png")
-print("figures in", FIG)
+    fig.savefig(E3 / "figures" / "fig6_arch_long.png")
+print("figures in", E1, E2, E3)

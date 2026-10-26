@@ -11,13 +11,16 @@ import json
 import numpy as np
 import torch
 
-from common import (ROOT, PRETRAINED, FINETUNED, XGRID, MAX_FREQ, Timer, load_test_set,
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # experiments/: common.py, fr_variants.py
+from common import (ROOT, EXP, PRETRAINED, FINETUNED, XGRID, MAX_FREQ, Timer, load_test_set,
                     to_complex, load_deepfreq, fnr_percent, chamfer, matched_rmse, matched_median,
                     esprit, music_peaks, periodogram_peaks, mdl_counts, interp_peaks,
                     nls_refine)
 from data import fr
 
-OUT = ROOT / "experiments" / "results"
+OUT = EXP / "1_cleanup_step" / "results"
 OUT.mkdir(parents=True, exist_ok=True)
 SNRS = [-5, 0, 5, 10, 15, 20, 25, 30, 40, 50]
 

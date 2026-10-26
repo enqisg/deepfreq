@@ -11,11 +11,14 @@ import json
 import numpy as np
 import torch
 
-from common import (ROOT, FINETUNED, XGRID, MAX_FREQ, Timer, load_test_set, to_complex,
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # experiments/: common.py, fr_variants.py
+from common import (ROOT, EXP, FINETUNED, XGRID, MAX_FREQ, Timer, load_test_set, to_complex,
                     load_deepfreq, esprit, music_peaks, mdl_counts, interp_peaks, nls_refine)
 from data import fr
 
-OUT = ROOT / "experiments" / "results"
+OUT = EXP / "extra_speed_test" / "results"
 
 
 def bench(fn, inputs, repeats=3):

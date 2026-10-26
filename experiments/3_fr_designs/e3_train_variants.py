@@ -3,7 +3,8 @@
 Every variant sees the same pre-generated training signals, the same noise
 model as DeepFreq (gaussian_blind, SNR >= 0 dB), the same loss (squared error
 to the Gaussian-kernel target) and the same number of optimisation steps.
-Usage: python e3_train_variants.py [variant ...]
+Usage: [STEPS=4000] [TAG=_suffix] python experiments/3_fr_designs/e3_train_variants.py [variant ...]
+Uses CUDA or Apple MPS automatically when available.
 """
 
 import json
@@ -14,7 +15,10 @@ import time
 import numpy as np
 import torch
 
-from common import ROOT, XGRID, MAX_FREQ, load_test_set, fnr_percent
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # experiments/: common.py, fr_variants.py
+from common import ROOT, EXP, XGRID, MAX_FREQ, load_test_set, fnr_percent
 from fr_variants import VARIANTS
 from data import data, fr
 from data.noise import noise_torch
@@ -24,7 +28,9 @@ TAG = os.environ.get("TAG", "")
 BATCH = 256
 N_TRAIN = 100_000
 LR = 1e-3
-OUT = ROOT / "experiments" / "checkpoints"
+OUT = EXP / "3_fr_designs" / "models"
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else
+                      "mps" if torch.backends.mps.is_available() else "cpu")
 CACHE = ROOT / "experiments" / "train_cache.npz"
 
 
@@ -46,7 +52,7 @@ def quick_val(model):
     for snr in (0, 10, 20, 30):
         sig, tgt, cnt = load_test_set(snr)
         with torch.no_grad():
-            rep = model(torch.from_numpy(sig).float()).numpy()
+            rep = model(torch.from_numpy(sig).float().to(DEVICE)).cpu().numpy()
         res[snr] = fnr_percent(fr.find_freq(rep, cnt, XGRID, MAX_FREQ), tgt)
     model.train()
     return res
@@ -56,14 +62,15 @@ def train(name):
     torch.manual_seed(0)
     s, target = training_set()
     s, target = torch.from_numpy(s), torch.from_numpy(target)
-    model = VARIANTS[name]()
+    s, target = s.to(DEVICE), target.to(DEVICE)
+    model = VARIANTS[name]().to(DEVICE)
     opt = torch.optim.Adam(model.parameters(), lr=LR)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=LR, total_steps=STEPS, pct_start=0.05)
     gen = torch.Generator().manual_seed(1)
     log = []
     t0 = time.time()
     for step in range(1, STEPS + 1):
-        idx = torch.randint(0, N_TRAIN, (BATCH,), generator=gen)
+        idx = torch.randint(0, N_TRAIN, (BATCH,), generator=gen).to(DEVICE)
         noisy = noise_torch(s[idx], 1.0, "gaussian_blind")
         loss = ((model(noisy) - target[idx]) ** 2).sum() / BATCH
         opt.zero_grad()
@@ -76,7 +83,7 @@ def train(name):
                         "fnr_by_snr": val})
             print(name, log[-1], flush=True)
     OUT.mkdir(parents=True, exist_ok=True)
-    torch.save(model.state_dict(), OUT / f"{name}{TAG}.pt")
+    torch.save({k: v.cpu() for k, v in model.state_dict().items()}, OUT / f"{name}{TAG}.pt")
     with open(OUT / f"{name}{TAG}_log.json", "w") as fh:
         json.dump(log, fh, indent=1)
 

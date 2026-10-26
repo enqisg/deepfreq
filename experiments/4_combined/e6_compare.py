@@ -4,12 +4,13 @@ Systems (all on the saved test sets, -5 to 50 dB):
   (a) Original fine-tuned: FR + FC regression count + find_freq
   (b) Original FR + E2 fusion counter + peak interpolation + NLS clean-up
   (c) Improved: new FR (e6_improved_finetune.py) + its fusion counter + NLS
+  (d) Small FR (8 layers, 32 filters, from E3/E5) + its fusion counter + NLS
 Metrics per SNR: FNR with the true count, count accuracy, Chamfer error of the
 full pipeline and median frequency error (bins) of the full pipeline.  Also
-times (a) and (c) end to end on CPU.
+times (a), (c) and (d) end to end on CPU.
 
-Run e6_improved_finetune.py (stages fr and counter) first, then:
-  python experiments/e6_compare.py
+Run e6_improved_finetune.py (stages fr, counter, counter_small) first, then:
+  python experiments/4_combined/e6_compare.py
 """
 
 import csv
@@ -22,17 +23,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from common import (ROOT, FINETUNED, XGRID, MAX_FREQ, load_test_set, to_complex, chamfer, fnr_percent,
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # experiments/: common.py, fr_variants.py
+from common import (ROOT, EXP, FINETUNED, XGRID, MAX_FREQ, load_test_set, to_complex, chamfer, fnr_percent,
                     matched_median, interp_peaks, nls_refine)
 from e2_counting import Counter, features, run_net
-from e6_improved_finetune import FR_PATH, COUNTER_PATH
+from e6_improved_finetune import FR_PATH, COUNTER_PATH, SMALL_COUNTER_PATH, load_small_fr
 from data import fr
 import util
 
-OUT = ROOT / "experiments" / "results"
+OUT = EXP / "4_combined" / "results"
 FIG = OUT / "figures"
 SNRS = [-5, 0, 5, 10, 15, 20, 25, 30, 40, 50]
-NAMES = {"a": "Original fine-tuned", "b": "Original + counter + clean-up", "c": "Improved"}
+NAMES = {"a": "Original fine-tuned", "b": "Original + counter + clean-up", "c": "Improved",
+         "d": "Small FR + counter + clean-up"}
 
 
 def load_counter(path):
@@ -66,13 +71,14 @@ def main():
     fc_orig = util.load(str(FINETUNED[1]), "fc", cpu)[0].eval()
     fr_new = util.load(str(FR_PATH), "fr", cpu)[0].eval()
     models = {"a": (fr_orig, fc_orig, None),
-              "b": (fr_orig, fc_orig, load_counter(ROOT / "experiments" / "checkpoints" / "fusion_counter.pt")),
-              "c": (fr_new, fc_orig, load_counter(COUNTER_PATH))}
+              "b": (fr_orig, fc_orig, load_counter(EXP / "2_new_counter" / "models" / "fusion_counter.pt")),
+              "c": (fr_new, fc_orig, load_counter(COUNTER_PATH)),
+              "d": (load_small_fr(), fc_orig, load_counter(SMALL_COUNTER_PATH))}
 
     rows = []
     for snr in SNRS:
         signals, targets, counts = load_test_set(snr)
-        for system in "abc":
+        for system in "abcd":
             oracle, _ = pipeline(system, models, signals, counts)
             est, cnt = pipeline(system, models, signals)
             rows.append({"snr_db": snr, "system": NAMES[system],
@@ -89,7 +95,7 @@ def main():
     # end-to-end CPU time per signal at batch 1000 (20 dB), best of 3
     signals = load_test_set(20)[0]
     timing = {}
-    for system in "ac":
+    for system in "acd":
         pipeline(system, models, signals[:100])
         best = np.inf
         for _ in range(3):

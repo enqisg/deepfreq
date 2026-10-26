@@ -13,7 +13,11 @@ import scipy.signal
 import torch
 
 ROOT = Path(__file__).resolve().parents[1]
+EXP = ROOT / "experiments"
 sys.path.insert(0, str(ROOT))
+# one folder per improvement; added to the path so experiments can import each other
+for _folder in ("1_cleanup_step", "2_new_counter", "3_fr_designs", "4_combined", "extra_speed_test"):
+    sys.path.insert(1, str(EXP / _folder))
 
 from data import fr, loss  # noqa: E402
 from data.source_number import mdl_arr  # noqa: E402

@@ -4,7 +4,7 @@ For every checkpoint: oracle-count FNR and median frequency error at each test
 SNR, plus inference time per signal (batch of 1000 and batch of 1) on CPU and,
 when available, on the Apple GPU (MPS).  The pretrained DeepFreq FR is timed
 the same way for reference.
-Usage: python e5_eval_long_runs.py   (writes results/e5_long_runs.json)
+Usage: python experiments/3_fr_designs/e5_eval_long_runs.py   (writes 3_fr_designs/results/e5_long_runs.json)
 """
 
 import json
@@ -13,13 +13,16 @@ import time
 import numpy as np
 import torch
 
-from common import ROOT, XGRID, MAX_FREQ, fnr_percent
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # experiments/: common.py, fr_variants.py
+from common import ROOT, EXP, XGRID, MAX_FREQ, fnr_percent
 from fr_variants import VARIANTS
 from data import fr
 
 SNRS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
-CKPT = ROOT / "experiments" / "checkpoints"
-OUT = ROOT / "experiments" / "results"
+CKPT = EXP / "3_fr_designs" / "models"
+OUT = EXP / "3_fr_designs" / "results"
 
 
 def median_err_bins(est, targets):

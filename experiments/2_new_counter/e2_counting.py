@@ -19,14 +19,17 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from common import (ROOT, FINETUNED, XGRID, MAX_FREQ, SIGNAL_DIM, load_test_set, to_complex,
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # experiments/: common.py, fr_variants.py
+from common import (ROOT, EXP, FINETUNED, XGRID, MAX_FREQ, SIGNAL_DIM, load_test_set, to_complex,
                     load_deepfreq, chamfer, fnr_percent, hankel_batch, interp_peaks, nls_refine,
                     mdl_counts, _steering)
 from data import data
 from data.noise import noise_torch
 import scipy.signal
 
-OUT = ROOT / "experiments" / "results"
+OUT = EXP / "2_new_counter" / "results"
 SNRS = [-5, 0, 5, 10, 15, 20, 25, 30, 40, 50]
 N_FEAT_PEAKS = 15
 
@@ -128,7 +131,7 @@ def main():
         if epoch % 10 == 0:
             print("mlp epoch", epoch, "val acc", acc, flush=True)
     net.load_state_dict(best_state)
-    torch.save({"state": best_state, "mu": mu, "sd": sd}, ROOT / "experiments" / "checkpoints" / "fusion_counter.pt")
+    torch.save({"state": best_state, "mu": mu, "sd": sd}, EXP / "2_new_counter" / "models" / "fusion_counter.pt")
     print("fusion val acc", best, "| fc val acc", (np.clip(np.rint(va_raw), 1, 10) == va_n).mean(), flush=True)
 
     # ---- tune NLS-BIC penalty on validation

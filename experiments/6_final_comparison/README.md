@@ -91,3 +91,22 @@ DeepFreq about 5 ms (original and fine-tuned) and 5.6 ms (improved), NOMP
   they are not faster than the simple classical methods. Most of that time is
   the peak-picking step in Python; the networks themselves take about 1 ms
   (see `extra_speed_test/`).
+
+## DeepFreq vs the FFT only
+
+![fft](results/figures/fig_fft_vs_deepfreq.png)
+
+The "Periodogram" method above *is* the FFT: the signal is zero-padded to 1000
+points (the same grid the FR model uses), the squared FFT magnitude is taken,
+and the highest peaks are picked. `fig_fft_vs_deepfreq.png` shows only that
+line against the three DeepFreq versions.
+
+- The FFT misses about 13 % of frequencies even with almost no noise. With only
+  50 samples its peaks are about 1 bin wide, so two frequencies close together
+  merge into one peak, and the side lobes of a strong frequency can hide a weak one.
+- Its error stops falling at about 0.09 bins for the same reason: nearby
+  frequencies pull each other's peaks off position.
+- All DeepFreq versions miss far fewer (about 1 % at 20 dB) because the FR model
+  learned to draw sharp peaks even for close frequencies.
+- The FFT itself has no way to count; here it uses MDL, which is worse than the
+  DeepFreq counters below 25 dB and similar above.

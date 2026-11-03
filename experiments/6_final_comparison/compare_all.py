@@ -207,6 +207,31 @@ def plot():
     plt.tight_layout()
     plt.savefig(FIG / "fig_e_speed.png", dpi=150)
     plt.close()
+    plot_fft(rows, panels)
+
+
+def plot_fft(rows, panels):
+    """The three DeepFreq versions against the FFT only.  The 'Periodogram' method
+    is the FFT: |FFT|^2 of the signal zero-padded to the same 1000-point grid as
+    the FR model, then the highest peaks are picked (count from MDL)."""
+    lines = {"DeepFreq (original)": "DeepFreq (original)", "DeepFreq (fine-tuned)": "DeepFreq (fine-tuned)",
+             "DeepFreq (improved)": "DeepFreq (improved)", "Periodogram": "FFT (zero-padded to 1000 points)"}
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8.5))
+    for ax, (key, label, logy, tag) in zip(axes.flat, panels):
+        for m, shown in lines.items():
+            x, y = series(rows, m, key)
+            c, mk, ls = STYLE[m]
+            ax.plot(x, y, color=c, marker=mk, linestyle=ls, lw=2.2, ms=4, label=shown)
+        if logy:
+            ax.set_yscale("log")
+        ax.set_title(f"({tag}) {label}", fontsize=10)
+        ax.set_xlabel("SNR (dB)")
+        ax.grid(alpha=0.3, which="both")
+    h, lab = axes[0, 0].get_legend_handles_labels()
+    fig.legend(h, lab, loc="lower center", ncol=4, fontsize=10)
+    fig.tight_layout(rect=(0, 0.06, 1, 1))
+    fig.savefig(FIG / "fig_fft_vs_deepfreq.png", dpi=150)
+    plt.close(fig)
 
 
 if __name__ == "__main__":

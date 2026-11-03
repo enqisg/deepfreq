@@ -54,6 +54,7 @@ experiments/
 │   │                             small_fr_fusion_counter.pt
 │   ├── logs/                     console logs of the E6 runs
 │   └── results/                  e6_comparison.csv, e6_timing.json, figures/fig7–fig9
+├── 6_final_comparison/         All DeepFreq versions vs classical methods (one script + figures)
 └── extra_speed_test/             E4: CPU speed of the fine-tuned model (TorchScript)
     ├── e4_inference_speed.py
     └── results/

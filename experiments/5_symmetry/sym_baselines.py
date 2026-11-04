@@ -142,17 +142,41 @@ def _crit(rss, k, mult):
     return 2 * SIGNAL_DIM * np.log(rss / SIGNAL_DIM + 1e-12) + mult * 3 * k * np.log(2 * SIGNAL_DIM)
 
 
-def add_drop_one(y, f, mult, k_max=MAX_FREQ, oversample=4, iters=100, allowed=None):
+def _local_floor(r, steer, idx):
+    """Noise power near each grid frequency, from the residual's periodogram:
+    the median over bins 1-3 DFT bins away (white noise: median = sigma^2 ln 2)."""
+    p = np.abs(steer @ r) ** 2 / SIGNAL_DIM
+    return np.median(p[idx], axis=1) / np.log(2)
+
+
+def add_drop_one(y, f, mult, k_max=MAX_FREQ, oversample=4, iters=100, allowed=None, local=False, relocate=False):
     """Start from frequencies f (e.g. the detector's), refine them, then greedily
     add a sinusoid at the residual's spectral peak and drop sinusoids, keeping
     each change only when the penalised likelihood improves.
 
     allowed: optional candidate frequencies (e.g. the detector's weaker peaks);
     new sinusoids may then only be added within half a bin of one of them, so
-    the likelihood decides among what the network proposes."""
+    the likelihood decides among what the network proposes.
+
+    local: also judge each added or kept sinusoid against the noise power
+    near its own frequency (residual periodogram, bins 1-3 DFT bins away)
+    instead of only the average noise power, so a hump of coloured noise is
+    not fitted as an extra sinusoid.
+
+    relocate: after adding and dropping, also try moving each sinusoid: drop
+    it, refit, add one at the residual's peak, refit, and keep the result if
+    the penalised likelihood improves (then drop again).  This gets out of
+    fits where a sinusoid sits between two close true frequencies."""
     m = oversample * SIGNAL_DIM
     grid = np.arange(m) / m - 0.5
     steer = np.exp(-2j * np.pi * np.outer(grid, N_IDX))
+    pen = mult * 3 * np.log(2 * SIGNAL_DIM)
+    if local:
+        offs = np.concatenate([np.arange(-3 * oversample, -oversample), np.arange(oversample + 1, 3 * oversample + 1)])
+        win = (np.arange(m)[:, None] + offs[None, :]) % m
+
+        def gid(v):
+            return int(np.round((v + 0.5) * m)) % m
     if allowed is not None:
         allowed = np.asarray(allowed)
         near = np.abs(((grid[:, None] - allowed[None, :]) + 0.5) % 1 - 0.5).min(1) <= 0.5 / SIGNAL_DIM \
@@ -168,20 +192,63 @@ def add_drop_one(y, f, mult, k_max=MAX_FREQ, oversample=4, iters=100, allowed=No
                 break
             corr = np.where(near, corr, -1.0)
         cand = _joint_refine(y, np.append(f, grid[np.argmax(corr)]), iters)
-        c = _crit(_rss(y, cand), len(cand), mult)
+        rss_c = _rss(y, cand)
+        c = _crit(rss_c, len(cand), mult)
         if c >= best:
             break
+        if local:
+            rss_f = _rss(y, f)
+            floor = max(_local_floor(r, steer, win)[gid(cand[-1])], rss_f / SIGNAL_DIM)
+            if 2 * (rss_f - rss_c) / floor <= pen:
+                break
         f, best = cand, c
+    f, best = _drop_moves(y, f, best, mult, local, steer, win if local else None)
+    if relocate:
+        for _ in range(2):
+            moved = False
+            for i in range(len(f)):
+                g = _joint_refine(y, np.delete(f, i), iters) if len(f) > 1 else np.zeros(0)
+                a_mat = np.stack([_atom(v) for v in g], 1) if len(g) else np.zeros((SIGNAL_DIM, 0))
+                r = y - a_mat @ np.linalg.lstsq(a_mat, y, rcond=None)[0] if len(g) else y
+                corr = np.abs(steer @ r)
+                if allowed is not None:
+                    corr = np.where(near, corr, -1.0)
+                cand = _joint_refine(y, np.append(g, grid[np.argmax(corr)]), iters)
+                c = _crit(_rss(y, cand), len(cand), mult)
+                if c < best - 1e-6:
+                    f, best, moved = cand, c, True
+                    break
+            if not moved:
+                break
+            f, best = _drop_moves(y, f, best, mult, local, steer, win if local else None)
+    return np.sort(f)
+
+
+def _drop_moves(y, f, best, mult, local, steer, win):
+    """Drop sinusoids while the penalised likelihood improves (with local:
+    also drop one that is weak against the noise near its own frequency)."""
+    m = steer.shape[0]
+    pen = mult * 3 * np.log(2 * SIGNAL_DIM)
+
+    def gid(v):
+        return int(np.round((v + 0.5) * m)) % m
+
     improved = True
     while improved and len(f) > 1:                          # drop
         improved = False
+        if local:
+            rss_f = _rss(y, f)
+            a_mat = np.stack([_atom(v) for v in f], 1)
+            floors = _local_floor(y - a_mat @ np.linalg.lstsq(a_mat, y, rcond=None)[0], steer, win)
         for i in range(len(f)):
             cand = _joint_refine(y, np.delete(f, i), 20)
-            c = _crit(_rss(y, cand), len(cand), mult)
-            if c < best:
+            rss_c = _rss(y, cand)
+            c = _crit(rss_c, len(cand), mult)
+            weak = local and 2 * (rss_c - rss_f) / max(floors[gid(f[i])], rss_f / SIGNAL_DIM) <= pen
+            if c < best or weak:
                 f, best, improved = cand, c, True
                 break
-    return np.sort(f)
+    return f, best
 
 
 def add_drop(x, estimates, mult):

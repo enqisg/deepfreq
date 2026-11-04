@@ -84,19 +84,24 @@ def snr_estimate(y, f):
 def hybrid(signals, est_refined, mult, gate_db, proposals=None):
     """Likelihood check (add/drop by penalised likelihood) on top of the
     refined detector output, used only when the signal's estimated SNR (from
-    the fit residual, no noise level given) is above gate_db.  proposals:
+    the fit residual, no noise level given) is above gate_db.  Each sinusoid
+    is also judged against the noise near its own frequency (LOCAL).  proposals:
     optional [N, 10] candidate frequencies; adds are then limited to them."""
     x = to_complex(signals)
     out = []
     for i, (y, e) in enumerate(zip(x, est_refined)):
         f = e[e >= -0.5]
         allowed = None if proposals is None else proposals[i][proposals[i] >= -0.5]
-        out.append(add_drop_one(y, f, mult, allowed=allowed) if snr_estimate(y, f) > gate_db else f)
+        out.append(add_drop_one(y, f, mult, allowed=allowed, local=LOCAL) if snr_estimate(y, f) > gate_db else f)
     return pad(out)
 
 
 TUNE_SNRS = (0, 5, 10, 15, 20, 25, 30, 40, 50)
-PLOWS = (0.05, 0.1)
+PLOWS = (0.05, 0.1, 0.2, 0.3)
+# judge each sinusoid against the noise near its own frequency, not only the
+# average noise power (sym_baselines.add_drop_one): robust to coloured noise,
+# costs about 1 point of count accuracy at 20 dB on white noise
+LOCAL = True
 MULTS = (2.5, 2.0, 1.5)
 GATES = (25, 20, 17.5, 15, 12.5, 10)
 
@@ -139,7 +144,7 @@ def pick_hybrid(model, th, n=300, decoder=None):
             for mult in MULTS:
                 k = k_ref[snr].copy()
                 for i in np.where(snr_hat[snr] > min(GATES))[0]:
-                    k[i] = len(add_drop_one(x[i], fs[i], mult, allowed=props[i][props[i] >= -0.5]))
+                    k[i] = len(add_drop_one(x[i], fs[i], mult, allowed=props[i][props[i] >= -0.5], local=LOCAL))
                 k_ad[snr, plow, mult] = k
     best = None
     for plow in sorted(PLOWS, reverse=True):

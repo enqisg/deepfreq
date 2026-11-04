@@ -36,6 +36,7 @@ Here it is built in:
 | `sym_eval_hard.py` | DeepFreq 2019, the improved DeepFreq (E6), NOMP and the detector on the robustness sets |
 | `run_round3.sh` | Round 3 runs (60k steps, 3 seeds, count head, data efficiency) and evaluations |
 | `sym_eval_fr.py` | FR-type learned baselines (DeepFreq 2019, cResFreq, SwinFreq, ...) with exactly the same count threshold, clean-up and likelihood check as the detector |
+| `sym_stats.py` | Per-signal scores on the test sets and paired bootstrap comparisons between two systems (95% intervals, one-sided p) |
 | `run_round4.sh` | Round 4 runs: symmetry ablation and the cResFreq / SwinFreq baselines (60k steps), started when round 3's GPU work ends |
 | `models/`, `logs/`, `results/` | Checkpoints, training logs, result files |
 
@@ -104,3 +105,31 @@ noise level; the detector is not.
   only (`cpxdet16x64c`), shift only (`rawdet16x64c`), both
   (`eqdet16x64c`); and the cResFreq and SwinFreq baselines, trained on the
   same data for 60k steps and scored with the same post-processing.
+
+## Likelihood check: local noise floor
+
+The check adds or keeps a sinusoid only if it lowers a BIC-style score
+enough. With the noise level taken from the whole residual, coloured noise
+(strong at some frequencies, weak at others) made it add false sinusoids
+where the noise is strong: count accuracy at 30 dB on the coloured set was
+69.5 % (E6: 90.9 %). Now each add or keep is also judged against the
+residual spectrum near its own frequency (median 1 to 3 bins away, divided
+by ln 2, never below the global level). Chosen on a coloured validation set
+(seed 777), not on the test sets.
+
+| Count accuracy % | 20 dB | 30 dB | 40 dB | 50 dB |
+|---|---|---|---|---|
+| coloured, global floor | 21.6 | 69.5 | 84.7 | 84.2 |
+| coloured, local floor | 53.7 | 87.3 | 92.7 | 90.7 |
+| coloured, E6 | 65.3 | 90.9 | 92.9 | 95.2 |
+| white test set, global → local | 89.0 → 88.8 | 99.2 → 99.2 | 99.2 → 99.4 | 97.6 → 97.9 |
+
+On white noise it changes count accuracy by at most 0.3 points; on
+spiky noise it changes nothing. `LOCAL = True` in `sym_eval_detector.py`.
+Moves that relocate one sinusoid (`relocate=True`) help very close
+frequencies (super-resolution set at 50 dB: 57 → 64 % count accuracy) but
+cost about 5× the time, so they are off by default.
+
+Metric note: `data/loss.fnr` pads missing estimates with −1, which on the
+frequency circle equals 0, so a padded slot can "hit" a true frequency near 0.
+`sym_stats.py` scores each signal without the padding.

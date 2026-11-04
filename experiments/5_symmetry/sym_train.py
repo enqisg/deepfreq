@@ -8,7 +8,7 @@ Same training signals, noise model and optimiser as E3, with two additions:
 
 Usage (from the repository root):
   python experiments/5_symmetry/sym_train.py MODEL [--steps 4000] [--seed 0] [--ntrain 100000]
-                                  [--augment-shift] [--tag _x] [--device auto]
+                                  [--augment-shift] [--augment-colour] [--tag _x] [--device auto]
 MODEL is any key of sym_models.FR_MODELS (trained with DeepFreq's loss) or
 sym_models.DETECTORS (trained with the detection loss).
 """
@@ -59,6 +59,28 @@ def validation_set():
     noisy = {snr: noise_torch(torch.from_numpy(s), 10 ** (snr / 10), "gaussian").numpy() for snr in VAL_SNRS}
     np.savez(VAL_CACHE, f=f, **{f"s{snr}": v for snr, v in noisy.items()})
     return noisy, f
+
+
+def coloured_blind_noise(s, p=0.5, a_max=0.9, generator=None):
+    """Like noise_torch(s, 1.0, "gaussian_blind"), but a fraction p of the
+    signals get complex AR(1) noise, z[t] = a z[t-1] + sqrt(1-|a|^2) w[t],
+    with |a| uniform in [0, a_max] and a random angle, so the noise is
+    strongest at a random frequency.  Noise energy as in gaussian_blind."""
+    b, _, n = s.shape
+    dev = s.device
+    w = torch.randn(b, 2, n, generator=generator).to(dev)
+    z = torch.complex(w[:, 0], w[:, 1])
+    r = a_max * torch.rand(b, generator=generator).to(dev) * (torch.rand(b, generator=generator).to(dev) < p)
+    a = r * torch.exp(2j * np.pi * torch.rand(b, generator=generator).to(dev))
+    g = torch.sqrt(1 - r ** 2)
+    cols = [z[:, 0]]
+    for t in range(1, n):
+        cols.append(a * cols[-1] + g * z[:, t])
+    z = torch.stack(cols, 1)
+    noise = torch.stack([z.real, z.imag], 1).to(s.dtype)
+    sig = s.reshape(b, -1)
+    mult = torch.rand(b, generator=generator).to(dev) * torch.norm(sig, dim=1) / torch.norm(noise.reshape(b, -1), dim=1)
+    return s + noise * mult[:, None, None]
 
 
 def gaussian_target(f, sigma=0.3 / SIGNAL_DIM):
@@ -159,6 +181,8 @@ def main():
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--augment-shift", action="store_true",
                     help="multiply each training signal by a random tone (frequency-shift augmentation)")
+    ap.add_argument("--augment-colour", action="store_true",
+                    help="half the training signals get AR(1) noise of random strength and centre frequency")
     ap.add_argument("--tag", default="")
     ap.add_argument("--device", default="auto")
     ap.add_argument("--threads", type=int, default=4)
@@ -181,6 +205,7 @@ def main():
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, total_steps=args.steps, pct_start=0.05)
     gen = torch.Generator().manual_seed(args.seed + 1)
+    gen_noise = torch.Generator().manual_seed(args.seed + 2)   # own stream, so batches match the white-noise run
     name = f"{args.model}{args.tag}_s{args.seed}"
     OUT.mkdir(parents=True, exist_ok=True)
     log = {"args": vars(args), "params": n_params, "device": str(device), "evals": []}
@@ -196,7 +221,7 @@ def main():
             z = torch.complex(sig[:, 0], sig[:, 1]) * rot
             sig = torch.stack([z.real, z.imag], 1)
             fb = torch.where(fb > -1, (fb + f0 + 0.5) % 1 - 0.5, fb)
-        noisy = noise_torch(sig, 1.0, "gaussian_blind")
+        noisy = coloured_blind_noise(sig, generator=gen_noise) if args.augment_colour else noise_torch(sig, 1.0, "gaussian_blind")
         if detector:
             logits, offs, cnt_logits = model.forward_all(noisy)
             heat, off_t, mask = detection_targets(fb, model.m)

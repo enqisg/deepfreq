@@ -199,3 +199,31 @@ Paired bootstrap: ours is better on all three metrics at every SNR from 0 to
 50 dB (p ≤ 0.015). ANM over-counts above 30 dB (15 % at 50 dB), a known
 weakness of reading frequencies off the dual polynomial; an exact SDP solver
 might do a little better there.
+
+## Screening: training with random noise colours
+
+`sym_train.py --augment-colour`: half the training signals get complex AR(1)
+noise, z[t] = a z[t-1] + sqrt(1 - |a|²) w[t], with |a| uniform in [0, 0.9]
+and a random angle (so the noise is strongest at a random frequency), at the
+same noise energy as the usual noise. Two 4k-step runs of `eqdet8x64` on the
+cloud CPU, identical apart from this flag (`eqdet8x64_cpu_s0`,
+`eqdet8x64_colour_s0`). Count accuracy % / FNR % with the true count:
+
+| Set | SNR | white-trained | colour-trained |
+|---|---|---|---|
+| coloured | 0 dB | 11.9 / 33.0 | 17.5 / 26.3 |
+| coloured | 10 dB | 32.1 / 10.7 | 47.8 / 5.86 |
+| coloured | 20 dB | 64.2 / 2.40 | 67.2 / 1.85 |
+| coloured | 30 dB | 88.7 / 0.92 | 87.7 / 0.74 |
+| standard test | 10 dB | 51.9 / 6.41 | 48.8 / 6.40 |
+| standard test | 30 dB | 97.1 / 0.82 | 97.5 / 0.88 |
+| spikes | 30 dB | 39.0 / 13.5 | 36.8 / 13.8 |
+| 30 dB amplitude range | 30 dB | 94.7 / 1.90 | 93.0 / 2.06 |
+| 0.5 bins apart | 20 dB | 61.0 / 12.9 | 57.4 / 12.7 |
+| 0.5 bins apart | 30 dB | 76.8 / 11.7 | 75.8 / 11.7 |
+
+It fixes most of the coloured-noise loss at 0–20 dB for a small cost
+elsewhere. The white-trained 4k-step model is also less hurt by colour (32 %
+count accuracy at 10 dB) than the 20k-step `eqdet16x64` (16 %): longer
+white-noise training makes the detector more white-specific. With this
+flag, noise colour becomes a condition we train for, not an unseen one.

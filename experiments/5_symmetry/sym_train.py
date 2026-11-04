@@ -129,7 +129,8 @@ def evaluate(model, signals, f, device, detector, threshold=0.5, batch=500):
     counts = np.sum(f >= -0.5, axis=1)
     outs = []
     for i in range(0, len(signals), batch):
-        outs.append(model(torch.from_numpy(signals[i:i + batch]).float().to(device)))
+        x = torch.from_numpy(signals[i:i + batch]).float().to(device)
+        outs.append(model.forward_all(x) if detector else model(x))
     model.train()
     if not detector:
         rep = torch.cat(outs).cpu().numpy()
@@ -139,8 +140,13 @@ def evaluate(model, signals, f, device, detector, threshold=0.5, batch=500):
     est_oracle = decode(logits, offs, counts)
     est_full = decode(logits, offs, None, threshold)
     k_hat = np.sum(est_full >= -0.5, axis=1)
-    return {"fnr": fnr_percent(est_oracle, f), "count_acc": float(100 * np.mean(k_hat == counts)),
-            "chamfer": chamfer(est_full, f)}
+    res = {"fnr": fnr_percent(est_oracle, f), "count_acc": float(100 * np.mean(k_hat == counts)),
+           "chamfer": chamfer(est_full, f)}
+    if outs[0][2] is not None:   # count head: its own count, top-k peaks
+        k_head = torch.cat([o[2] for o in outs]).argmax(1).cpu().numpy() + 1
+        res["count_acc_head"] = float(100 * np.mean(k_head == counts))
+        res["chamfer_head"] = chamfer(decode(logits, offs, k_head), f)
+    return res
 
 
 def main():
@@ -192,9 +198,11 @@ def main():
             fb = torch.where(fb > -1, (fb + f0 + 0.5) % 1 - 0.5, fb)
         noisy = noise_torch(sig, 1.0, "gaussian_blind")
         if detector:
-            logits, offs = model(noisy)
+            logits, offs, cnt_logits = model.forward_all(noisy)
             heat, off_t, mask = detection_targets(fb, model.m)
             loss = focal_loss(logits, heat) + 5.0 * ((offs - off_t).abs() * mask).sum() / mask.sum().clamp(min=1)
+            if cnt_logits is not None:
+                loss = loss + torch.nn.functional.cross_entropy(cnt_logits, (fb > -1).sum(1) - 1)
         else:
             loss = ((model(noisy) - gaussian_target(fb)) ** 2).sum() / args.batch
         opt.zero_grad()

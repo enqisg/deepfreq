@@ -108,3 +108,4 @@ venv.bak/
 experiments/train_cache.npz
 experiments/train_cache_f.npz
 experiments/val_cache.npz
+experiments/5_symmetry/test_sets/

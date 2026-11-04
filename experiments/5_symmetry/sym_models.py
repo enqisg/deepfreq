@@ -108,7 +108,7 @@ class EquivariantDetector(nn.Module):
     """
 
     def __init__(self, tapers=8, ch=64, n_blocks=8, dilations=(1, 2, 4, 8), m=250, lift="multitaper",
-                 learn_tapers=True):
+                 learn_tapers=True, count_head=False, max_freq=10):
         super().__init__()
         self.lift = MultitaperLift(50, tapers, m) if lift == "multitaper" else LinearLift(50, 32, m)
         if not learn_tapers:
@@ -121,17 +121,28 @@ class EquivariantDetector(nn.Module):
         nn.init.constant_(self.head.bias, 0.0)
         with torch.no_grad():
             self.head.bias[0] = -4.0  # start with "no frequency here" (focal-loss prior)
+        # optional count head: mean- and max-pooled features over frequency (so
+        # still shift-invariant) -> logits for 1..max_freq frequencies
+        self.count_head = nn.Sequential(nn.Linear(2 * ch, 128), nn.ReLU(), nn.Linear(128, max_freq)) \
+            if count_head else None
+
+    def forward_all(self, inp):
+        h = self.blocks(self.inp(self.lift(inp)))
+        out = self.head(h)
+        cnt = self.count_head(torch.cat([h.mean(-1), h.amax(-1)], 1)) if self.count_head is not None else None
+        return out[:, 0], torch.tanh(out[:, 1]) * 0.5, cnt   # logits [B,M], offsets in bins [B,M], [B,K]
 
     def forward(self, inp):
-        out = self.head(self.blocks(self.inp(self.lift(inp))))
-        return out[:, 0], torch.tanh(out[:, 1]) * 0.5   # logits [B,M], offsets in bins [B,M]
+        return self.forward_all(inp)[:2]
 
 
 DETECTORS = {
     "eqdet8x64": lambda: EquivariantDetector(8, 64, 8),
     "eqdet16x64": lambda: EquivariantDetector(8, 64, 16),
     "eqdet16x64m500": lambda: EquivariantDetector(8, 64, 16, m=500),
+    "eqdet16x64c": lambda: EquivariantDetector(8, 64, 16, count_head=True),
     # ablations
     "lindet8x64": lambda: EquivariantDetector(8, 64, 8, lift="linear"),
     "eqdet8x64fixed": lambda: EquivariantDetector(8, 64, 8, learn_tapers=False),
+    "lindet16x64c": lambda: EquivariantDetector(8, 64, 16, lift="linear", count_head=True),
 }

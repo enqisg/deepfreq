@@ -69,7 +69,7 @@ def _joint_refine(y, f, iters=5):
     return f
 
 
-def nomp_one(y, k_max=MAX_FREQ, k_oracle=None, tau=None, oversample=4, r_s=1, r_c=3, joint_iters=20):
+def nomp_one(y, k_max=MAX_FREQ, k_oracle=None, tau=None, oversample=4, r_s=1, r_c=3, joint_iters=100):
     m = oversample * SIGNAL_DIM
     grid = np.arange(m) / m - 0.5
     fs, amps = [], []
@@ -125,3 +125,64 @@ def crb_per_signal(f_true, clean, sigma2):
     proj = np.eye(SIGNAL_DIM) - a_mat @ np.linalg.pinv(a_mat)
     fim = (2 / sigma2) * np.real((d.conj().T @ proj @ d) * np.outer(amp.conj(), amp).T)
     return np.diag(np.linalg.pinv(fim)), f
+
+
+# ---------------------------------------- likelihood check on a learned start
+
+def _rss(y, f):
+    if len(f) == 0:
+        return float(np.sum(np.abs(y) ** 2))
+    a_mat = np.stack([_atom(v) for v in f], 1)
+    amp = np.linalg.lstsq(a_mat, y, rcond=None)[0]
+    return float(np.sum(np.abs(y - a_mat @ amp) ** 2))
+
+
+def _crit(rss, k, mult):
+    """BIC-style penalised likelihood for k complex sinusoids (3 real parameters each)."""
+    return 2 * SIGNAL_DIM * np.log(rss / SIGNAL_DIM + 1e-12) + mult * 3 * k * np.log(2 * SIGNAL_DIM)
+
+
+def add_drop_one(y, f, mult, k_max=MAX_FREQ, oversample=4, iters=100, allowed=None):
+    """Start from frequencies f (e.g. the detector's), refine them, then greedily
+    add a sinusoid at the residual's spectral peak and drop sinusoids, keeping
+    each change only when the penalised likelihood improves.
+
+    allowed: optional candidate frequencies (e.g. the detector's weaker peaks);
+    new sinusoids may then only be added within half a bin of one of them, so
+    the likelihood decides among what the network proposes."""
+    m = oversample * SIGNAL_DIM
+    grid = np.arange(m) / m - 0.5
+    steer = np.exp(-2j * np.pi * np.outer(grid, N_IDX))
+    if allowed is not None:
+        allowed = np.asarray(allowed)
+        near = np.abs(((grid[:, None] - allowed[None, :]) + 0.5) % 1 - 0.5).min(1) <= 0.5 / SIGNAL_DIM \
+            if len(allowed) else np.zeros(m, bool)
+    f = _joint_refine(y, np.asarray(f, dtype=np.float64), iters) if len(f) else np.zeros(0)
+    best = _crit(_rss(y, f), len(f), mult)
+    while len(f) < k_max:                                   # add
+        a_mat = np.stack([_atom(v) for v in f], 1) if len(f) else np.zeros((SIGNAL_DIM, 0))
+        r = y - a_mat @ np.linalg.lstsq(a_mat, y, rcond=None)[0] if len(f) else y
+        corr = np.abs(steer @ r)
+        if allowed is not None:
+            if not near.any():
+                break
+            corr = np.where(near, corr, -1.0)
+        cand = _joint_refine(y, np.append(f, grid[np.argmax(corr)]), iters)
+        c = _crit(_rss(y, cand), len(cand), mult)
+        if c >= best:
+            break
+        f, best = cand, c
+    improved = True
+    while improved and len(f) > 1:                          # drop
+        improved = False
+        for i in range(len(f)):
+            cand = _joint_refine(y, np.delete(f, i), 20)
+            c = _crit(_rss(y, cand), len(cand), mult)
+            if c < best:
+                f, best, improved = cand, c, True
+                break
+    return np.sort(f)
+
+
+def add_drop(x, estimates, mult):
+    return pad([add_drop_one(y, e[e >= -0.5], mult) for y, e in zip(x, estimates)])

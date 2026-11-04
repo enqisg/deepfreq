@@ -41,6 +41,7 @@ Here it is built in:
 | `sym_eval_hard_fr.py` | An FR baseline with our post-processing on the robustness sets |
 | `sym_stats.py` | Per-signal scores on the test sets and paired bootstrap comparisons between two systems (95% intervals, one-sided p) |
 | `run_round4.sh` | Round 4 runs: symmetry ablation and the cResFreq / SwinFreq baselines (60k steps), started when round 3's GPU work ends |
+| `run_round5.sh` | Round 5 runs: shift augmentation without built-in symmetry, a colour-trained 60k-step detector and a second seed of the DeepFreq-front-end model, started when round 4's GPU work ends |
 | `models/`, `logs/`, `results/` | Checkpoints, training logs, result files |
 
 ## Results so far
@@ -94,7 +95,7 @@ noise level; the detector is not.
   misses and counts at 30 dB and above. Round 3 adds a count head, longer
   training and the likelihood check (`sym_eval_detector.hybrid`) aimed at these.
 
-## Round 3 and 4 plan
+## Round 3, 4 and 5 plan
 
 - Round 3 (running): the detector with a count head at 60k steps, 3 seeds;
   the same model with DeepFreq's front-end (`lindet16x64c`); data efficiency
@@ -108,6 +109,13 @@ noise level; the detector is not.
   only (`cpxdet16x64c`), shift only (`rawdet16x64c`), both
   (`eqdet16x64c`); and the cResFreq and SwinFreq baselines, trained on the
   same data for 60k steps and scored with the same post-processing.
+- Round 5: is data augmentation enough without built-in symmetry? DeepFreq's
+  front-end (`lindet16x64c`) trained with a random frequency shift on every
+  training signal (`--augment-shift`), on 3k, 10k and 100k signals, and ours
+  with the same shifts on 3k, all 10k steps, to compare with round 3's
+  data-efficiency runs. Then a 60k-step detector trained with random noise
+  colours (`eqdet16x64c_colour60k`, scored on the robustness sets too) and a
+  second seed of the 60k DeepFreq-front-end model for the ablation.
 
 ## Likelihood check: local noise floor
 

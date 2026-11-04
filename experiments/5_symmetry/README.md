@@ -40,6 +40,7 @@ Here it is built in:
 | `sym_eval_fr.py` | FR-type learned baselines (DeepFreq 2019, cResFreq, SwinFreq, ...) with exactly the same count threshold, clean-up and likelihood check as the detector |
 | `sym_eval_hard_fr.py` | An FR baseline with our post-processing on the robustness sets |
 | `sym_stats.py` | Per-signal scores on the test sets and paired bootstrap comparisons between two systems (95% intervals, one-sided p) |
+| `sym_summary.py` | Tables over seeds (mean ± sd), data efficiency and the symmetry ablation from the `det_*.json` files |
 | `run_round4.sh` | Round 4 runs: symmetry ablation and the cResFreq / SwinFreq baselines (60k steps), started when round 3's GPU work ends |
 | `run_round5.sh` | Round 5 runs: shift augmentation without built-in symmetry, a colour-trained 60k-step detector and a second seed of the DeepFreq-front-end model, started when round 4's GPU work ends |
 | `models/`, `logs/`, `results/` | Checkpoints, training logs, result files |

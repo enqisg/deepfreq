@@ -1,0 +1,298 @@
+# Building the symmetries of line spectra into a learned frequency estimator
+
+*Working draft. Numbers marked (prov.) come from the single-seed 20k-step
+model and will be replaced by the 3-seed 60k-step results from rounds 3 to 5
+(`experiments/5_symmetry`). Items marked TODO are open.*
+
+## Abstract (draft)
+
+Learned frequency estimators such as DeepFreq map a short noisy signal to a
+spectrum-like representation with a general learned linear front-end, and
+must learn from data that the problem has simple symmetries: modulating a
+signal by a pure tone shifts every frequency by the same amount, and the
+global phase and loudness do not change which frequencies are present. We
+build these symmetries into the network. A learned multitaper front-end,
+started from Slepian tapers, computes windowed spectra with one FFT and keeps
+only phase-free cross-spectra, so it is exactly equivariant to frequency
+shifts on its grid and exactly invariant to the global phase. Circular
+convolutions along frequency and a detection head that predicts, per bin,
+whether a frequency is present and its sub-bin offset then let one network
+both locate and count the sinusoids, replacing DeepFreq's two networks. A
+short least-squares refinement and a penalised-likelihood check finish the
+estimate. With everything else fixed, the symmetric front-end misses 4-10x
+fewer frequencies at 20-30 dB than DeepFreq's front-end while using 5x fewer
+parameters. The full detector (2.5x smaller than DeepFreq's FR model) comes
+within 15 % of the Cramér-Rao bound from 10 dB. Against DeepFreq 2019 given
+the same post-processing, it has significantly lower Chamfer distance and
+fewer missed frequencies from 0 dB and better counts from 15 dB; it also
+beats NOMP (told the noise level), atomic-norm denoising and VALSE on count
+accuracy and Chamfer distance at 0-50 dB. TODO: 3 seeds, count head at low
+SNR, data efficiency, augmentation control, real data.
+
+## 1 Introduction
+
+Estimating the frequencies of a few sinusoids from a short, noisy record is
+a classic problem (spectral analysis, radar, sonar, communications, audio).
+With $N$ samples, the periodogram cannot separate two frequencies closer than
+about $1/N$, and parametric methods (MUSIC, ESPRIT, NOMP, atomic norm
+denoising, VALSE) need either the number of sinusoids, the noise level or a
+regularisation weight, and degrade at low SNR or for close frequencies.
+
+DeepFreq (Izacard, Mohan and Fernandez-Granda, NeurIPS 2019) showed that a
+network trained on simulated signals can do better. It uses two networks: the
+FR model (frequency representation) turns the signal into a sharp spectrum,
+and the FC model (frequency counting) estimates how many sinusoids there are.
+The FR model starts with a general learned matrix from the $2N$ real inputs to
+a set of feature maps on a frequency grid.
+
+That matrix has to learn something we already know. Line spectra have three
+symmetries:
+
+1. **Frequency shift.** Multiplying $x[t]$ by $e^{i 2\pi f_0 t}$ shifts every
+   frequency by $f_0$. The answer should shift too.
+2. **Global phase.** Multiplying $x$ by $e^{i\varphi}$ changes nothing.
+3. **Scale.** Multiplying $x$ by $c > 0$ changes no frequency (and, for a
+   blind estimator, not the count either).
+
+Our question: does building these in help, and by how much? Our contributions:
+
+- A **learned multitaper lift**, exactly equivariant to grid shifts and
+  exactly invariant to the global phase, with $O(CN)$ parameters instead of
+  the $2N \times C'M$ (800k here) of a general linear front-end (Section 3.1).
+- A **one-network detector**: circular convolutions along frequency and a
+  CenterNet-style head (per-bin presence and sub-bin offset) plus a pooled
+  count head, so locating and counting share one shift-equivariant backbone
+  and no separate counting network is needed (Section 3.2).
+- A **fair comparison protocol**: every learned spectrum (DeepFreq 2019,
+  cResFreq, SwinFreq, ours) gets the same count threshold tuning, refinement
+  and likelihood check, so differences come from the networks, with paired
+  bootstrap tests per SNR (Section 5).
+- A **controlled symmetry ablation** (neither, phase only, shift only, both)
+  with everything else fixed, an augmentation control, and a data-efficiency
+  study (Section 6).
+
+## 2 Problem and symmetries
+
+The signal is $x[t] = \sum_{j=1}^{K} a_j e^{i(2\pi f_j t + \phi_j)} + w[t]$,
+$t = 0, \dots, N-1$, with $N = 50$, $1 \le K \le 10$ unknown,
+$f_j \in [-1/2, 1/2)$ separated by at least $1/N$ on the circle, amplitudes
+$a_j \ge 0.1$ and white complex Gaussian noise $w$ of unknown level. The goal
+is the set $\{f_j\}$, including its size $K$.
+
+Let $T_{f_0}$ be modulation, $(T_{f_0}x)[t] = e^{i2\pi f_0 t}x[t]$; $P_\varphi$
+the global phase, $(P_\varphi x)[t] = e^{i\varphi}x[t]$; and $S_c$ scaling by
+$c>0$. An ideal estimator $E$ satisfies $E(T_{f_0}x) = E(x) + f_0 \pmod 1$
+and $E(P_\varphi x) = E(S_c x) = E(x)$. Modulation and phase rotation leave
+white circular Gaussian noise unchanged in distribution, so the first two
+symmetries hold for the Bayes-optimal estimator too, not only for the
+noiseless map. Scaling also scales the noise, so for noisy signals it
+matters only through the SNR.
+
+## 3 Method
+
+### 3.1 Learned multitaper lift
+
+$C$ learned complex windows $w_c[t]$, initialised as the first $C$ discrete
+prolate spheroidal (Slepian) tapers ($C = 8$), give windowed spectra on an
+$M$-point grid ($M = 250$, five times finer than $1/N$) with one FFT:
+
+$$Z_c(k) = \frac{1}{N}\sum_{t=0}^{N-1} w_c[t]\, x[t]\, e^{-i 2\pi k t / M}.$$
+
+The features are the magnitudes $|Z_c(k)|$ and the normalised cross-spectra
+
+$$G_{cd}(k) = \frac{Z_c(k)\,\overline{Z_d(k)}}{\sqrt{|Z_c(k)\,Z_d(k)|}}, \quad c < d,$$
+
+split into real and imaginary parts: $C + C(C-1) = 64$ channels on the grid.
+
+**Proposition 1.** For a grid shift $f_0 = m/M$, $Z_c$ of $T_{f_0}x$ is
+$Z_c$ of $x$ circularly shifted by $m$; for $P_\varphi x$ it is
+$e^{i\varphi}Z_c$; for $S_c x$ it is $c Z_c$. Hence every lift feature is
+circularly shifted by $m$ under $T_{m/M}$, unchanged under $P_\varphi$, and
+multiplied by $c$ under $S_c$.
+
+*Proof.* Substitute into the definition: the modulation moves
+$e^{-i2\pi kt/M}$ to $e^{-i2\pi(k-m)t/M}$; the phase and scale factor out of
+the sum. $|e^{i\varphi}Z_c| = |Z_c|$ and the phase cancels in
+$Z_c\overline{Z_d}$; the normaliser makes $G$ degree-one homogeneous in $c$.
+$\square$
+
+Checked numerically: the largest deviation over random signals and shifts is
+$4\times10^{-7}$ (float32). The lift has $2CN = 800$ parameters; the
+DeepFreq-style learned matrix in our ablation has 800k.
+
+### 3.2 Backbone and heads
+
+A $1\times1$ convolution maps the 64 channels to 64, followed by 16 residual
+blocks of two circular convolutions (kernel 3, dilations 1, 2, 4, 8 in turn)
+with batch normalisation and ReLU. Circular convolution commutes with
+circular shifts, and batch normalisation pools statistics over the batch and
+the frequency axis, so the backbone keeps shift equivariance and phase
+invariance (Proposition 1 composes). Scale is not kept exactly (biases); the
+training data covers a wide amplitude range instead.
+
+- **Detection head** ($1\times1$ convolution, 2 outputs per bin): a logit for
+  "a frequency lies in this bin" and a sub-bin offset in $[-1/2, 1/2]$ bins.
+  Trained with the CenterNet focal loss on a Gaussian heatmap (width one
+  grid bin) plus an $L_1$ offset loss on the true bins (weight 5).
+- **Count head**: mean- and max-pooled backbone features over frequency
+  (shift-invariant), a 2-layer MLP, and a cross-entropy loss over
+  $K \in \{1, \dots, 10\}$.
+
+Decoding: local maxima of the heatmap, either the $K$ highest (true count
+given, "oracle") or all above a threshold picked on validation data, or the
+top $\hat K$ from the count head; position = bin centre + offset.
+
+### 3.3 Clean-up and likelihood check
+
+1. **Joint refinement.** 100 Gauss-Newton steps on the least-squares fit of
+   all detected sinusoids to $x$ (amplitudes solved in closed form).
+2. **Likelihood check.** If the estimated SNR (fitted power over residual
+   power, no noise level needed) is above a gate, try adding the strongest
+   residual peak among the network's low-threshold proposals and dropping
+   each sinusoid; keep a move if it lowers a BIC-style score by a margin.
+   Each move is also judged against the residual spectrum near its own
+   frequency, which makes the check robust to coloured noise. The margin,
+   gate and proposal threshold are tuned once on validation data at 0-50 dB.
+3. **Optional VALSE clean-up.** Above a second gate (picked on validation
+   data), the estimate is used to start VALSE (Badiu et al. 2017), which then
+   runs as usual. Section 6.4 reports it separately; all main results are
+   without it.
+
+Every learned FR baseline gets steps 1-2 with its own tuned threshold and
+check parameters, using its spectrum peaks in place of our heatmap.
+
+## 4 Related work
+
+- **Classical line spectral estimation.** Periodogram and multitaper
+  (Thomson 1982; Slepian 1978); subspace methods MUSIC (Schmidt 1986) and
+  ESPRIT (Roy and Kailath 1989); greedy NOMP (Mamandipoor et al. 2016);
+  convex gridless methods, atomic norm denoising (Bhaskar, Tang and Recht
+  2013; Candès and Fernandez-Granda 2014); Bayesian VALSE (Badiu, Hansen and
+  Fleury 2017). Model order by information criteria (Schwarz 1978).
+- **Learned frequency estimation.** PSnet (Izacard et al., ICASSP 2019),
+  DeepFreq (NeurIPS 2019), cResFreq (Pan et al., IEEE TGRS 2022, complex-valued
+  front-end, i.e. phase symmetry only), SwinFreq (TODO check citation). All
+  use a general learned front-end and a spectrum-matching loss.
+- **Equivariant networks.** Group-equivariant CNNs (Cohen and Welling 2016),
+  the general theory linking equivariance and convolution (Kondor and
+  Trivedi 2018), and the geometric deep learning view (Bronstein et al.
+  2021). Here the group acts on the input by modulation, and the FFT turns it
+  into a translation of the frequency axis, so circular convolution is the
+  natural equivariant layer.
+- **Detection heads.** CenterNet (Zhou, Wang and Krähenbühl 2019) and the
+  focal loss (Lin et al. 2017): we treat frequencies as points on a circle.
+
+## 5 Experimental protocol
+
+- **Data.** Same generator as DeepFreq: 100k training signals (seed 2026),
+  noise level drawn per signal (SNR from 0 dB to noiseless); a separate
+  validation set (seed 777) for every tuned number; DeepFreq's saved test
+  sets (1000 signals per SNR, -5 to 50 dB) only for final numbers.
+- **Robustness sets.** Frequencies 0.5 and 0.25 bins apart; 30 dB amplitude
+  range; coloured (AR(1)) noise; impulsive noise.
+- **Metrics.** Count accuracy; Chamfer distance in bins (with the estimated
+  count); FNR, the share of true frequencies with no estimate within 0.5 bins
+  when the true count is given; median error against the Cramér-Rao bound.
+- **Baselines.** DeepFreq 2019 (released weights, its own FC model, and with
+  our post-processing), an improved DeepFreq (fine-tuned FR, new counter,
+  refinement), cResFreq and SwinFreq (re-implemented, trained on the same
+  data for 60k steps, our post-processing), NOMP (given the true noise
+  level), atomic norm denoising (regularisation tuned on validation data),
+  VALSE (no tuning).
+- **Statistics.** 3 seeds for our model; paired bootstrap over test signals
+  (10k resamples, one-sided p) for every claimed difference.
+
+## 6 Results
+
+### 6.1 Main comparison (prov., 1 seed, 20k steps)
+
+Count accuracy % / Chamfer (bins) / FNR %, test sets:
+
+| Method | 0 dB | 10 dB | 20 dB | 30 dB | 50 dB |
+|---|---|---|---|---|---|
+| Ours (0.40M) | 27.4 / 0.173 / 22.5 | 53.3 / 0.049 / 5.71 | 88.8 / 0.0118 / 0.64 | 99.2 / 0.0031 / 0.14 | 97.9 / 0.0013 / 0.12 |
+| VALSE | 19.7 / 0.357 / 30.5 | 49.9 / 0.067 / 8.24 | 82.4 / 0.0145 / 1.65 | 87.6 / 0.0060 / 1.98 | 50.7 / 0.0112 / 4.10 |
+
+TODO: fill all rows from `sym_stats.py` once rounds 3-4 finish (DeepFreq
+2019 with and without our post-processing, E6, cResFreq, SwinFreq, NOMP, ANM).
+
+Paired bootstrap, ours against each baseline (one-sided $p < 0.05$), prov.:
+
+| Baseline | count accuracy | Chamfer | FNR |
+|---|---|---|---|
+| DeepFreq 2019 FR + our post-processing | better 15-50 dB, level -5 to 10 | better 0-50, worse -5 | better 0-50, level -5 |
+| NOMP (true noise level) | better 0-50, level -5 | better 0-50, worse -5 | better 0-20, level -5 and 25-50 |
+| Atomic norm denoising | better 0-50, level -5 | better 0-50, worse -5 | better 0-50, worse -5 |
+| VALSE | better 0-50, level -5 | better 0-50, worse -5 | better 0-50, level -5 |
+
+The weak spots are -5 dB (outside the training SNR range) and counting at
+0-10 dB, which the count head in round 3 targets.
+
+### 6.2 Accuracy against the Cramér-Rao bound (prov.)
+
+Median absolute error with the true count, bins:
+
+| SNR | 10 dB | 20 dB | 30 dB | 50 dB |
+|---|---|---|---|---|
+| CRB (median abs. error) | 0.0512 | 0.0162 | 0.0051 | 0.00051 |
+| Ours | 0.0521 | 0.0162 | 0.0049 | 0.00058 |
+
+Ours is within 2 % of the bound at 10-30 dB and 14 % at 50 dB.
+
+### 6.3 What the symmetries buy
+
+- Round 2 (prov.): same backbone, head and loss, only the front-end changed:
+  4x fewer misses at 20 dB (0.66 vs 2.71 %) and 10x fewer at 30 dB (0.23 vs
+  2.35 %) with 5x fewer parameters.
+- TODO round 4: 2x2 ablation (neither, phase only, shift only, both), 60k
+  steps (`sym_summary.py ablation`).
+- TODO round 3: data efficiency, 3k to 100k training signals
+  (`sym_summary.py data`).
+- TODO round 5: is augmentation enough? DeepFreq's front-end with random
+  frequency shifts on every training signal.
+
+### 6.4 Learned start for VALSE
+
+Started from our estimates and used only above a validation-picked SNR gate,
+VALSE cuts our misses at 30-50 dB from about 0.13 % to 0.02-0.06 %
+($p \le 0.017$) and helps very close pairs at 50 dB (count accuracy 49.8 →
+61.1 %). The same step on DeepFreq 2019 leaves ours significantly ahead on
+FNR and Chamfer at 0-50 dB.
+
+### 6.5 Robustness
+
+TODO: tables from `hard_*` results, including the colour-trained model.
+
+### 6.6 Real data
+
+TODO: depends on access to a real recording set (NSynth test split asked).
+
+## 7 Limitations
+
+- Exact equivariance holds only for shifts by multiples of $1/M$; sub-grid
+  shifts are handled by the offsets and learned, not guaranteed.
+- Scale is not built in exactly.
+- Trained on white noise with SNR at least 0 dB; -5 dB is outside the
+  training range, and coloured noise needs colour-augmented training.
+- $N = 50$ and $K \le 10$ throughout, as in DeepFreq.
+
+## References (to format)
+
+- Badiu, Hansen, Fleury. Variational Bayesian inference of line spectra. IEEE TSP 2017.
+- Bhaskar, Tang, Recht. Atomic norm denoising with applications to line spectral estimation. IEEE TSP 2013.
+- Bronstein, Bruna, Cohen, Veličković. Geometric deep learning: grids, groups, graphs, geodesics, and gauges. arXiv 2021.
+- Candès, Fernandez-Granda. Towards a mathematical theory of super-resolution. CPAM 2014.
+- Cohen, Welling. Group equivariant convolutional networks. ICML 2016.
+- Izacard, Bernstein, Fernandez-Granda. A learning-based framework for line-spectra super-resolution. ICASSP 2019.
+- Izacard, Mohan, Fernandez-Granda. Data-driven estimation of sinusoid frequencies. NeurIPS 2019.
+- Kondor, Trivedi. On the generalization of equivariance and convolution in neural networks to the action of compact groups. ICML 2018.
+- Lin, Goyal, Girshick, He, Dollár. Focal loss for dense object detection. ICCV 2017.
+- Mamandipoor, Ramasamy, Madhow. Newtonized orthogonal matching pursuit: frequency estimation over the continuum. IEEE TSP 2016.
+- Pan, Zhang, Deng, Fan, Huang. Complex-valued frequency estimation network and its applications to superresolution of radar range profiles. IEEE TGRS 2022.
+- Roy, Kailath. ESPRIT: estimation of signal parameters via rotational invariance techniques. IEEE TASSP 1989.
+- Schmidt. Multiple emitter location and signal parameter estimation. IEEE TAP 1986.
+- Schwarz. Estimating the dimension of a model. Annals of Statistics 1978.
+- Slepian. Prolate spheroidal wave functions, Fourier analysis, and uncertainty V: the discrete case. Bell System Technical Journal 1978.
+- Thomson. Spectrum estimation and harmonic analysis. Proc. IEEE 1982.
+- Zhou, Wang, Krähenbühl. Objects as points. arXiv 2019.
+- TODO: SwinFreq.

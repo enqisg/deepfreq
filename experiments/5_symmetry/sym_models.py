@@ -6,7 +6,11 @@
   DeepFreq's loss (drop-in FR model, [B,2,50] -> [B,1000]).
 * EquivariantDetector: the same backbone with a detection head (per-bin
   probability + sub-bin offset), so one network locates and counts.
-* LinearLift: DeepFreq's learned-matrix front-end, for ablations.
+* LinearLift: DeepFreq's learned-matrix front-end, for ablations;
+  ComplexLinearLift (phase symmetry only) and RawMultitaperLift (shift
+  symmetry only) for the symmetry ablation.
+* CResFreqFR, SwinFreqFR: our reimplementations of two newer learned
+  baselines, trained with DeepFreq's loss.
 """
 
 import sys
@@ -41,11 +45,14 @@ class MultitaperLift(nn.Module):
         self.register_buffer("iu", iu)
         self.out_ch = tapers + 2 * iu.shape[1]
 
-    def forward(self, inp):
+    def spectra(self, inp):
         x = torch.complex(inp[:, 0], inp[:, 1])
         w = torch.complex(self.wr, self.wi)
         z = torch.fft.fftshift(torch.fft.fft(x[:, None, :] * w[None], n=self.m), dim=-1)
-        z = z / x.shape[-1]
+        return z / x.shape[-1]
+
+    def forward(self, inp):
+        z = self.spectra(inp)
         mag = z.abs()
         cross = z[:, self.iu[0]] * z[:, self.iu[1]].conj()
         cross = cross / torch.sqrt(cross.abs() + 1e-6)
@@ -99,6 +106,138 @@ class LinearLift(nn.Module):
         return self.lin(inp.reshape(inp.shape[0], -1)).view(inp.shape[0], self.out_ch, self.m)
 
 
+class RawMultitaperLift(MultitaperLift):
+    """Ablation, shift symmetry only: the same learned windows and FFT, but
+    keeping the raw real and imaginary parts of each windowed spectrum.
+    Still exactly shift-equivariant; the global phase is no longer removed."""
+
+    def __init__(self, n=50, tapers=8, m=250):
+        super().__init__(n, tapers, m)
+        self.out_ch = 2 * tapers
+
+    def forward(self, inp):
+        z = self.spectra(inp)
+        return torch.cat([z.real, z.imag], dim=1)
+
+
+class ComplexLinearLift(nn.Module):
+    """Ablation, phase symmetry only (the cResFreq front-end): a learned
+    complex matrix from the n complex samples to ch x m complex features,
+    then the modulus.  The modulus removes the global phase, but the learned
+    matrix is not tied to frequency shifts."""
+
+    def __init__(self, n=50, ch=32, m=250):
+        super().__init__()
+        self.wr = nn.Linear(n, ch * m, bias=False)
+        self.wi = nn.Linear(n, ch * m, bias=False)
+        self.out_ch, self.m = ch, m
+
+    def forward(self, inp):
+        xr, xi = inp[:, 0], inp[:, 1]
+        re = self.wr(xr) - self.wi(xi)
+        im = self.wi(xr) + self.wr(xi)
+        return torch.sqrt(re ** 2 + im ** 2 + 1e-8).view(inp.shape[0], self.out_ch, self.m)
+
+
+LIFTS = {"multitaper": lambda m: MultitaperLift(50, 8, m), "rawtaper": lambda m: RawMultitaperLift(50, 8, m),
+         "linear": lambda m: LinearLift(50, 32, m), "complex": lambda m: ComplexLinearLift(50, 32, m)}
+
+
+class CResFreqFR(nn.Module):
+    """Our reimplementation of cResFreq (Pan et al., IEEE TGRS 2022) at N=50:
+    complex linear layer to ch x 125 complex features and their modulus,
+    residual convolution blocks, and DeepFreq's transposed-convolution output
+    layer (8x up to the 1000-point grid).  Trained with DeepFreq's loss."""
+
+    def __init__(self, n_blocks=10, ch=64, inner_dim=125, upsampling=8, kernel_out=25):
+        super().__init__()
+        self.lift = ComplexLinearLift(50, ch, inner_dim)
+        self.blocks = nn.Sequential(*[ResBlock(ch) for _ in range(n_blocks)])
+        self.out_layer = nn.ConvTranspose1d(ch, 1, kernel_out, stride=upsampling,
+                                            padding=(kernel_out - upsampling + 1) // 2, output_padding=1,
+                                            bias=False)
+
+    def forward(self, inp):
+        return self.out_layer(self.blocks(self.lift(inp))).view(inp.shape[0], -1)
+
+
+class _WindowAttention1d(nn.Module):
+    def __init__(self, dim, heads, window):
+        super().__init__()
+        self.heads, self.window = heads, window
+        self.qkv = nn.Linear(dim, 3 * dim)
+        self.proj = nn.Linear(dim, dim)
+        self.rel_bias = nn.Parameter(torch.zeros(heads, 2 * window - 1))
+        idx = torch.arange(window)
+        self.register_buffer("rel", idx[:, None] - idx[None, :] + window - 1)
+
+    def forward(self, x):                                   # [B*windows, W, C]
+        b, w, c = x.shape
+        qkv = self.qkv(x).view(b, w, 3, self.heads, c // self.heads).permute(2, 0, 3, 1, 4)
+        q, k, v = qkv[0], qkv[1], qkv[2]
+        att = (q @ k.transpose(-2, -1)) * (c // self.heads) ** -0.5 + self.rel_bias[:, self.rel]
+        return self.proj((att.softmax(-1) @ v).transpose(1, 2).reshape(b, w, c))
+
+
+class _SwinLayer1d(nn.Module):
+    def __init__(self, dim, heads, window, shift, mlp_ratio=4):
+        super().__init__()
+        self.window, self.shift = window, shift
+        self.n1, self.n2 = nn.LayerNorm(dim), nn.LayerNorm(dim)
+        self.attn = _WindowAttention1d(dim, heads, window)
+        self.mlp = nn.Sequential(nn.Linear(dim, mlp_ratio * dim), nn.GELU(), nn.Linear(mlp_ratio * dim, dim))
+
+    def forward(self, x):                                   # [B, M, C]; frequency axis is circular
+        b, m, c = x.shape
+        h = torch.roll(self.n1(x), -self.shift, 1) if self.shift else self.n1(x)
+        h = self.attn(h.reshape(b * m // self.window, self.window, c)).view(b, m, c)
+        x = x + (torch.roll(h, self.shift, 1) if self.shift else h)
+        return x + self.mlp(self.n2(x))
+
+
+class _SwinBlock1d(nn.Module):
+    def __init__(self, dim, depth, heads, window):
+        super().__init__()
+        self.layers = nn.Sequential(*[_SwinLayer1d(dim, heads, window, (i % 2) * window // 2)
+                                      for i in range(depth)])
+        self.conv = nn.Conv1d(dim, dim, 3, padding=1, padding_mode="circular")
+
+    def forward(self, x):                                   # [B, M, C]
+        return x + self.conv(self.layers(x).transpose(1, 2)).transpose(1, 2)
+
+
+class SwinFreqFR(nn.Module):
+    """Our reimplementation of SwinFreq (Smith et al., ICASSP 2024) at N=50:
+    complex 'matched filter' (complex linear map to m=250 bins, then a
+    complex 3-tap convolution to C=32 channels) and its modulus, 4 blocks of 3
+    shifted-window self-attention layers (window 10, 8 heads of size 4), a
+    long residual connection and a transposed convolution (4x) to 1000 bins.
+    Trained with DeepFreq's loss (MSE to the Gaussian-kernel spectrum)."""
+
+    def __init__(self, ch=32, m=250, n_blocks=4, depth=3, heads=8, window=10):
+        super().__init__()
+        self.mf_r, self.mf_i = nn.Linear(50, m, bias=False), nn.Linear(50, m, bias=False)
+        self.cv_r = nn.Conv1d(1, ch, 3, padding=1, padding_mode="circular", bias=False)
+        self.cv_i = nn.Conv1d(1, ch, 3, padding=1, padding_mode="circular", bias=False)
+        self.blocks = nn.Sequential(*[_SwinBlock1d(ch, depth, heads, window) for _ in range(n_blocks)])
+        self.out_layer = nn.ConvTranspose1d(ch, 1, 24, stride=4, padding=10, bias=False)
+
+    def forward(self, inp):
+        xr, xi = inp[:, 0], inp[:, 1]
+        zr = (self.mf_r(xr) - self.mf_i(xi))[:, None]
+        zi = (self.mf_i(xr) + self.mf_r(xi))[:, None]
+        hr, hi = self.cv_r(zr) - self.cv_i(zi), self.cv_i(zr) + self.cv_r(zi)
+        f0 = torch.sqrt(hr ** 2 + hi ** 2 + 1e-8)           # [B, C, M]
+        h = self.blocks(f0.transpose(1, 2)).transpose(1, 2) + f0
+        return self.out_layer(h).squeeze(1)
+
+
+FR_MODELS.update({
+    "cresfreq10x64": lambda: CResFreqFR(10, 64),
+    "swinfreq": lambda: SwinFreqFR(),
+})
+
+
 class EquivariantDetector(nn.Module):
     """Symmetry-aware FR model with a detection head instead of a spectrum.
 
@@ -110,7 +249,7 @@ class EquivariantDetector(nn.Module):
     def __init__(self, tapers=8, ch=64, n_blocks=8, dilations=(1, 2, 4, 8), m=250, lift="multitaper",
                  learn_tapers=True, count_head=False, max_freq=10):
         super().__init__()
-        self.lift = MultitaperLift(50, tapers, m) if lift == "multitaper" else LinearLift(50, 32, m)
+        self.lift = MultitaperLift(50, tapers, m) if lift == "multitaper" else LIFTS[lift](m)
         if not learn_tapers:
             self.lift.wr.requires_grad_(False)
             self.lift.wi.requires_grad_(False)
@@ -145,4 +284,7 @@ DETECTORS = {
     "lindet8x64": lambda: EquivariantDetector(8, 64, 8, lift="linear"),
     "eqdet8x64fixed": lambda: EquivariantDetector(8, 64, 8, learn_tapers=False),
     "lindet16x64c": lambda: EquivariantDetector(8, 64, 16, lift="linear", count_head=True),
+    # symmetry ablation: phase invariance only (cResFreq front-end), shift equivariance only
+    "cpxdet16x64c": lambda: EquivariantDetector(8, 64, 16, lift="complex", count_head=True),
+    "rawdet16x64c": lambda: EquivariantDetector(8, 64, 16, lift="rawtaper", count_head=True),
 }

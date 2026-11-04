@@ -74,6 +74,13 @@ def pick_threshold(model):
     return best[0]
 
 
+def snr_estimate(y, f):
+    """Signal-to-noise ratio in dB estimated from the fit residual (no noise
+    level is given): fitted power over residual power."""
+    rss = _rss(y, f)
+    return 10 * np.log10(max(np.sum(np.abs(y) ** 2) - rss, 1e-9) / max(rss, 1e-12))
+
+
 def hybrid(signals, est_refined, mult, gate_db, proposals=None):
     """Likelihood check (add/drop by penalised likelihood) on top of the
     refined detector output, used only when the signal's estimated SNR (from
@@ -83,15 +90,15 @@ def hybrid(signals, est_refined, mult, gate_db, proposals=None):
     out = []
     for i, (y, e) in enumerate(zip(x, est_refined)):
         f = e[e >= -0.5]
-        rss = _rss(y, f)
-        snr_hat = 10 * np.log10(max(np.sum(np.abs(y) ** 2) - rss, 1e-9) / max(rss, 1e-12))
         allowed = None if proposals is None else proposals[i][proposals[i] >= -0.5]
-        out.append(add_drop_one(y, f, mult, allowed=allowed) if snr_hat > gate_db else f)
+        out.append(add_drop_one(y, f, mult, allowed=allowed) if snr_estimate(y, f) > gate_db else f)
     return pad(out)
 
 
-TUNE_SNRS = (0, 10, 20, 30, 40, 50)
+TUNE_SNRS = (0, 5, 10, 15, 20, 25, 30, 40, 50)
 PLOWS = (0.05, 0.1)
+MULTS = (2.5, 2.0, 1.5)
+GATES = (25, 20, 17.5, 15, 12.5, 10)
 
 
 def validation_wide(n=300):
@@ -110,22 +117,36 @@ def validation_wide(n=300):
     return out, f[:n]
 
 
-def pick_hybrid(model, th, n=300):
+def pick_hybrid(model, th, n=300, decoder=None):
     """Penalty multiplier, SNR gate and proposal threshold for the likelihood
-    check, on validation data (ties go to the more conservative setting)."""
+    check, on validation data at 0-50 dB (ties go to the more conservative
+    setting: larger penalty, higher gate, higher proposal threshold).  The
+    add/drop result does not depend on the gate, so it is computed once per
+    (proposal threshold, penalty) and the gates are applied afterwards."""
+    dec = decoder or (lambda lo, of, c, t: decode(lo, of, c, t))
     val_s, val_f = validation_wide(n)
     counts = np.sum(val_f >= -0.5, axis=1)
-    ref, props = {}, {}
+    k_ref, snr_hat, k_ad = {}, {}, {}
     for snr in TUNE_SNRS:
         lo, of = raw_outputs(model, val_s[snr])
-        ref[snr] = refine(val_s[snr], decode(lo, of, None, th))
-        props[snr] = {p: decode(lo, of, None, p) for p in PLOWS}
+        ref = refine(val_s[snr], dec(lo, of, None, th))
+        x = to_complex(val_s[snr])
+        fs = [e[e >= -0.5] for e in ref]
+        k_ref[snr] = np.array([len(f) for f in fs])
+        snr_hat[snr] = np.array([snr_estimate(y, f) for y, f in zip(x, fs)])
+        for plow in PLOWS:
+            props = dec(lo, of, None, plow)
+            for mult in MULTS:
+                k = k_ref[snr].copy()
+                for i in np.where(snr_hat[snr] > min(GATES))[0]:
+                    k[i] = len(add_drop_one(x[i], fs[i], mult, allowed=props[i][props[i] >= -0.5]))
+                k_ad[snr, plow, mult] = k
     best = None
     for plow in sorted(PLOWS, reverse=True):
-        for mult in (2.5, 2.0, 1.5):
-            for gate in (20, 15, 10):
-                acc = np.mean([np.mean(np.sum(hybrid(val_s[s], ref[s], mult, gate, props[s][plow]) >= -0.5, 1)
-                                       == counts) for s in TUNE_SNRS])
+        for mult in MULTS:
+            for gate in GATES:
+                acc = np.mean([np.mean(np.where(snr_hat[s] > gate, k_ad[s, plow, mult], k_ref[s]) == counts)
+                               for s in TUNE_SNRS])
                 if best is None or acc > best[3] + 1e-9:
                     best = (mult, gate, plow, float(acc))
     return best[:3]

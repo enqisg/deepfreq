@@ -31,7 +31,7 @@ Here it is built in:
 | `sym_eval_detector.py` | Test-set evaluation of a detector, with and without the clean-up; count threshold picked on validation data |
 | `sym_baselines.py` | NOMP (Newtonized OMP, 2016) and the Cramér-Rao bound |
 | `sym_anm.py` | Atomic norm denoising (batched ADMM) on the test sets → `results/anm.json` |
-| `sym_valse.py` | VALSE (variational Bayesian line spectra) on the test and robustness sets → `results/valse.json`, `results/hard_<set>_valse.json` |
+| `sym_valse.py` | VALSE (variational Bayesian line spectra) on the test and robustness sets → `results/valse.json`, `results/hard_<set>_valse.json`; `start SPEC`: VALSE started from a learned system, and as a gated high-SNR clean-up → `results/valse_from_<tag>.json` |
 | `sym_eval_classical.py` | NOMP + CRB on every test set → `results/sym_nomp_crb.json` |
 | `run_round2.sh` | Round 2 runs (20k steps) and evaluations |
 | `hard_tests.py` | Robustness test sets (very close frequencies, 30 dB amplitude range, coloured noise, spikes) |
@@ -255,6 +255,44 @@ VALSE resolves frequencies 0.25 bins apart better than both learned models
 when it is told the count (FNR 21–24 % against 25–28 % at 20–30 dB), and is
 close to them at 0.5 bins up to 20 dB. It assumes white noise, and coloured noise
 hurts it more than either learned model.
+
+## A learned start for VALSE, and VALSE as a high-SNR clean-up
+
+`sym_valse.py start SPEC`: VALSE started from a learned system's final
+estimates instead of its greedy start (it still adds components from the
+residual and iterates as usual). From our estimates, VALSE's count accuracy
+at 50 dB goes from 50.7 % to 98.8 %. It is worse than our own output below
+20 dB (0 dB: count 20.1 against 27.4 %; VALSE's own count selection is
+weaker there), level at 20–25 dB and better from 30 dB up.
+
+So, as an optional last step, a system's output is replaced by VALSE started
+from it when the estimated SNR (from the system's own fit, no noise level
+given) is above a gate picked on validation data (mean count accuracy over
+0–50 dB): 25 dB for ours, 22.5 dB for DeepFreq 2019's FR model with the same
+post-processing, which gets the same step for a fair comparison. It adds
+about 0.1 s per signal on the standard test set and up to 0.8 s on the
+closest frequencies (one CPU core). Count % / FNR % with the true count /
+Chamfer (`valse_from_<tag>.json`):
+
+| Set | SNR | ours | ours + VALSE | DeepFreq 2019 FR + same post-processing | the same + VALSE |
+|---|---|---|---|---|---|
+| test | 20 dB | 88.8 / 0.64 / 0.0118 | (below the gate) | 87.8 / 1.11 / 0.0128 | 87.8 / 1.12 / 0.0128 |
+| test | 30 dB | 99.2 / 0.14 / 0.0031 | 99.7 / 0.02 / 0.0026 | 97.8 / 0.53 / 0.0039 | 99.2 / 0.16 / 0.0030 |
+| test | 40 dB | 99.4 / 0.12 / 0.0015 | 99.7 / 0.06 / 0.0012 | 97.8 / 0.44 / 0.0025 | 99.0 / 0.24 / 0.0016 |
+| test | 50 dB | 97.9 / 0.12 / 0.0013 | 98.8 / 0.06 / 0.0008 | 96.4 / 0.42 / 0.0023 | 98.2 / 0.17 / 0.0013 |
+| 0.5 bins apart | 30 dB | 79.7 / 9.73 / 0.0184 | 80.8 / 6.83 / 0.0150 | 76.6 / 10.4 / 0.0197 | 79.7 / 7.20 / 0.0151 |
+| 0.5 bins apart | 50 dB | 63.1 / 9.47 / 0.0259 | 70.7 / 7.13 / 0.0180 | 61.2 / 10.3 / 0.0263 | 68.8 / 7.74 / 0.0187 |
+| 0.25 bins apart | 30 dB | 63.4 / 25.2 / 0.0228 | 63.1 / 18.1 / 0.0188 | 61.2 / 25.3 / 0.0246 | 61.9 / 18.8 / 0.0195 |
+| 0.25 bins apart | 50 dB | 49.8 / 25.0 / 0.0350 | 61.1 / 18.8 / 0.0235 | 51.2 / 25.1 / 0.0356 | 60.0 / 19.2 / 0.0248 |
+
+Paired bootstrap on the test sets: the step cuts our misses at every SNR from
+30 to 50 dB (p ≤ 0.017) and raises our count at 30 and 45–50 dB (p ≤ 0.034); at
+25 dB it changes nothing significant. With the step on both, ours still
+misses fewer frequencies than DeepFreq 2019's FR model at every SNR from 0 to
+50 dB (30 dB: 0.02 against 0.16 %, p ≤ 0.03), counts better from 15 to 45 dB
+(p ≤ 0.04) and has lower Chamfer from 0 to 50 dB (p ≤ 0.035). With the step,
+both learned systems also beat VALSE on its own at 0.25 bins with the true
+count (FNR 18–19 % against 21.5 % at 30 dB), which they did not before.
 
 ## Screening: training with random noise colours
 

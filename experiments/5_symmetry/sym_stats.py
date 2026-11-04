@@ -15,6 +15,8 @@ results json):
     nomp                       NOMP, CFAR stop with the true noise level, 100-step refinement
     anm                        atomic norm denoising, from the estimates sym_anm.py saved
     valse                      VALSE, from the estimates sym_valse.py saved
+    valse_from:<tag>           VALSE started from a learned system's estimates (sym_valse.py start)
+    gated:<tag>                that system plus VALSE refinement above its SNR gate (sym_valse.py start)
 
 Usage:
     python experiments/5_symmetry/sym_stats.py run det:experiments/5_symmetry/models/eqdet16x64_20k_s0.pt:eqdet16x64
@@ -107,11 +109,14 @@ def run(spec):
             x = to_complex(sig)
             out[snr] = _scores(nomp(x, snr_db=snr, joint_iters=100), nomp(x, counts=cnt, joint_iters=100), tgt, cnt)
             print(name, snr, {k: round(float(np.nanmean(v)), 4) for k, v in out[snr].items()}, flush=True)
-    elif spec in ("anm", "valse"):
-        name = spec
+    elif spec in ("anm", "valse") or spec.split(":")[0] in ("valse_from", "gated"):
+        kind, tag = (spec.split(":", 1) + [""])[:2]
+        name = f"{kind}_{tag}" if tag else spec
         for snr in E.SNRS:
             _, tgt, cnt = load_test_set(snr)
-            d = np.load(RES / {"anm": "anm_peaks", "valse": "valse_est"}[spec] / f"est_{snr}.npz")
+            d = np.load(RES / {"anm": f"anm_peaks/est_{snr}.npz", "valse": f"valse_est/est_{snr}.npz",
+                               "valse_from": f"valse_est/from_{tag}_test_{snr}.npz",
+                               "gated": f"valse_est/gated_{tag}_test_{snr}.npz"}[kind])
             out[snr] = _scores(d["own"], d["oracle"], tgt, cnt)
             print(name, snr, {k: round(float(np.nanmean(v)), 4) for k, v in out[snr].items()}, flush=True)
     else:

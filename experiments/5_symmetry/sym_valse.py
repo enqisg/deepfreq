@@ -29,6 +29,12 @@ peak until it has k, as NOMP does.
 Usage:
     python experiments/5_symmetry/sym_valse.py                 # test sets -> results/valse.json
     python experiments/5_symmetry/sym_valse.py hard [SET ...]  # robustness sets -> results/hard_<set>_valse.json
+    python experiments/5_symmetry/sym_valse.py start SPEC
+        # VALSE started from a learned system's final estimates, and that system
+        # with VALSE refinement where its estimated SNR is above a gate picked on
+        # validation data; test sets and the close-frequency sets.
+        # SPEC as in sym_stats.py: det:<checkpoint>:<model> or fr:<name>
+        # -> results/valse_from_<tag>.json (tag: checkpoint name or fr_<name>)
 """
 
 import json
@@ -243,19 +249,25 @@ def _greedy_add(y, f, k, oversample=4):
     return f
 
 
-def estimate(x, counts):
+def estimate(x, counts, starts=None, starts_oracle=None):
     """VALSE on each signal: own estimate (raw and cleaned up), true-count
-    estimate (cleaned up), the raw VALSE count and run time."""
+    estimate (cleaned up), the raw VALSE count and run time.  starts /
+    starts_oracle: optional padded frequencies (another method's own and
+    true-count estimates) to start VALSE from instead of its greedy start."""
     own_raw, own, orc, k_raw, iters = [], [], [], [], []
     t0 = time.time()
-    for y, k in zip(x, counts):
-        f, a, _, n_it = valse_one(y)
+    for i, (y, k) in enumerate(zip(x, counts)):
+        st = None if starts is None else starts[i][starts[i] >= -0.5]
+        f, a, _, n_it = valse_one(y, start=st)
         f = f[np.argsort(-np.abs(a))]            # strongest first
         k_raw.append(len(f))
         iters.append(n_it)
         mine = f[:MAX_FREQ] if len(f) else _greedy_add(y, f, 1)
         own_raw.append(mine)
         own.append(_joint_refine(y, mine, 100))
+        if starts_oracle is not None:
+            f, a, _, _ = valse_one(y, start=starts_oracle[i][starts_oracle[i] >= -0.5])
+            f = f[np.argsort(-np.abs(a))]
         orc.append(_joint_refine(y, _greedy_add(y, f[:k], k), 100))
     ms = 1000 * (time.time() - t0) / len(x)
     return pad(own_raw), pad(own), pad(orc), np.array(k_raw), np.array(iters), ms
@@ -264,20 +276,62 @@ def estimate(x, counts):
 TEST_SNRS = (-5, 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50)
 
 
+_VAL = {}
+
+
+def _load_set(set_name, snr):
+    if set_name == "test":
+        return load_test_set(snr)
+    if set_name == "val":                       # validation signals (seed 777), never the test sets
+        if not _VAL:
+            from sym_eval_detector import validation_wide
+            _VAL["sig"], _VAL["f"] = validation_wide(300)
+        f = _VAL["f"]
+        return _VAL["sig"][snr], f, np.sum(f >= -0.5, 1)
+    from hard_tests import load
+    return load(set_name, snr)
+
+
 def _job(args):
-    kind, set_name, snr = args
-    out = CACHE / (f"est_{snr}.npz" if kind == "test" else f"hard_{set_name}_{snr}.npz")
+    kind, set_name, snr, tag = args
+    out = CACHE / {"test": f"est_{snr}.npz", "hard": f"hard_{set_name}_{snr}.npz",
+                   "start": f"from_{tag}_{set_name}_{snr}.npz"}[kind]
     if out.exists():
         return str(out)
-    if kind == "test":
-        sig, tgt, cnt = load_test_set(snr)
-    else:
-        from hard_tests import load
-        sig, tgt, cnt = load(set_name, snr)
-    own_raw, own, orc, k_raw, iters, ms = estimate(to_complex(sig), cnt)
+    sig, tgt, cnt = _load_set("test" if kind == "test" else set_name, snr)
+    starts = np.load(CACHE / f"start_{tag}_{set_name}_{snr}.npz") if kind == "start" else None
+    own_raw, own, orc, k_raw, iters, ms = estimate(to_complex(sig), cnt, *(
+        (starts["own"], starts["oracle"]) if starts is not None else ()))
     np.savez_compressed(out, own_raw=own_raw, own=own, oracle=orc, k_raw=k_raw, iters=iters, ms=ms)
     print("done", kind, set_name, snr, round(ms, 1), "ms/signal", flush=True)
     return str(out)
+
+
+def _starts(spec, jobs):
+    """A learned system's final estimates (own count and true count) for each
+    job, saved for the workers; the same pipeline as sym_stats.run."""
+    import torch
+    import sym_eval_detector as E
+    from sym_stats import run_detector, run_fr
+    from sym_train import decode
+    kind, rest = spec.split(":", 1)
+    tag, model, cfg = run_detector(*rest.rsplit(":", 1)) if kind == "det" else run_fr(rest)
+    for _, set_name, snr, _ in jobs:
+        out = CACHE / f"start_{tag}_{set_name}_{snr}.npz"
+        if out.exists():
+            continue
+        sig, _, cnt = _load_set(set_name, snr)
+        with torch.no_grad():
+            lo, of = E.raw_outputs(model, sig)
+        efr = E.refine(sig, decode(lo, of, None, cfg["threshold"]))
+        own = E.hybrid(sig, efr, cfg["hybrid_mult"], cfg["hybrid_gate_db"],
+                       decode(lo, of, None, cfg["hybrid_proposal_threshold"]))
+        np.savez_compressed(out, own=own, oracle=E.refine(sig, decode(lo, of, cnt)))
+
+
+def spec_tag(spec):
+    kind, rest = spec.split(":", 1)
+    return Path(rest.rsplit(":", 1)[0]).stem if kind == "det" else f"fr_{rest}"
 
 
 def _summary(d, tgt, cnt, fnr_fn):
@@ -298,7 +352,7 @@ def main(workers=4):
         from sym_eval_hard import fnr_at
         sets = sys.argv[2:] or SETS
         with Pool(workers) as pool:
-            list(pool.imap_unordered(_job, [("hard", s, snr) for s in sets for snr in SNRS]))
+            list(pool.imap_unordered(_job, [("hard", s, snr, None) for s in sets for snr in SNRS]))
         for set_name in sets:
             thr = {"superres05": 0.25, "superres025": 0.125}.get(set_name, 0.5)
             res = {"fnr_threshold_bins": thr, "snr": {}}
@@ -312,7 +366,7 @@ def main(workers=4):
             json.dump(res, open(RES / f"hard_{set_name}_valse.json", "w"), indent=1)
         return
     with Pool(workers) as pool:
-        list(pool.imap_unordered(_job, [("test", None, s) for s in TEST_SNRS]))
+        list(pool.imap_unordered(_job, [("test", None, s, None) for s in TEST_SNRS]))
     res = {"snr": {}}
     for snr in TEST_SNRS:
         _, tgt, cnt = load_test_set(snr)
@@ -321,5 +375,68 @@ def main(workers=4):
     json.dump(res, open(RES / "valse.json", "w"), indent=1)
 
 
+GATES_V = (15, 17.5, 20, 22.5, 25, 30)
+
+
+def _gated(tag, set_name, snr, gate):
+    """The system's estimates, replaced by VALSE started from them where the
+    estimated SNR (from the system's own fit, no noise level given) is above gate."""
+    from sym_eval_detector import snr_estimate
+    sig, tgt, cnt = _load_set(set_name, snr)
+    x = to_complex(sig)
+    st = np.load(CACHE / f"start_{tag}_{set_name}_{snr}.npz")
+    vb = np.load(CACHE / f"from_{tag}_{set_name}_{snr}.npz")
+    use = np.array([snr_estimate(y, e[e >= -0.5]) > gate for y, e in zip(x, st["own"])])
+    return (np.where(use[:, None], vb["own"], st["own"]), np.where(use[:, None], vb["oracle"], st["oracle"]),
+            use, tgt, cnt)
+
+
+def start_main(spec, workers=4):
+    """VALSE from a learned system's estimates on validation, test and the
+    close-frequency sets; the gate is picked on validation data (mean count
+    accuracy over 0-50 dB)."""
+    from multiprocessing import Pool
+    from hard_tests import SNRS
+    from sym_eval_hard import fnr_at
+    from sym_eval_detector import TUNE_SNRS
+    CACHE.mkdir(exist_ok=True)
+    tag = spec_tag(spec)
+    jobs = ([("start", "val", s, tag) for s in TUNE_SNRS] + [("start", "test", s, tag) for s in TEST_SNRS]
+            + [("start", st, s, tag) for st in ("superres05", "superres025") for s in SNRS])
+    _starts(spec, jobs)
+    with Pool(workers) as pool:
+        list(pool.imap_unordered(_job, sorted(jobs, key=lambda j: -j[2])))
+    vcnt = _load_set("val", TUNE_SNRS[0])[2]
+    acc = {g: [100 * float(np.mean(np.sum(_gated(tag, "val", s, g)[0] >= -0.5, 1) == vcnt)) for s in TUNE_SNRS]
+           for g in GATES_V}
+    base = [100 * float(np.mean(np.sum(np.load(CACHE / f"start_{tag}_val_{s}.npz")["own"] >= -0.5, 1) == vcnt))
+            for s in TUNE_SNRS]
+    gate = max(GATES_V, key=lambda g: (np.mean(acc[g]), g))
+    print("validation count accuracy without VALSE", round(float(np.mean(base)), 2),
+          {g: round(float(np.mean(a)), 2) for g, a in acc.items()}, "-> gate", gate, flush=True)
+    res = {"start": tag, "gate_db": gate, "val_snrs": list(TUNE_SNRS),
+           "val_count_acc": {"without": base, **{str(g): a for g, a in acc.items()}}, "valse_from_start": {},
+           "gated": {}}
+    for set_name, snrs in (("test", TEST_SNRS), ("superres05", SNRS), ("superres025", SNRS)):
+        thr = {"superres05": 0.25, "superres025": 0.125}.get(set_name, 0.5)
+        fnr_fn = fnr_percent if set_name == "test" else (lambda e, t, thr=thr: fnr_at(e, t, thr))
+        for snr in snrs:
+            _, tgt, cnt = _load_set(set_name, snr)
+            sm = _summary(np.load(CACHE / f"from_{tag}_{set_name}_{snr}.npz"), tgt, cnt, fnr_fn)
+            res["valse_from_start"].setdefault(set_name, {})[str(snr)] = sm
+            own, orc, use, tgt, cnt = _gated(tag, set_name, snr, gate)
+            res["gated"].setdefault(set_name, {})[str(snr)] = {
+                "count_acc": 100 * float(np.mean(np.sum(own >= -0.5, 1) == cnt)), "fnr_oracle": float(fnr_fn(orc, tgt)),
+                "chamfer": float(chamfer(own, tgt)), "share_refined": 100 * float(np.mean(use))}
+            if set_name == "test":
+                np.savez_compressed(CACHE / f"gated_{tag}_test_{snr}.npz", own=own, oracle=orc)
+            print(set_name, snr, "from start", {a: round(b, 4) for a, b in sm.items()}, "| gated",
+                  res["gated"][set_name][str(snr)], flush=True)
+    json.dump(res, open(RES / f"valse_from_{tag}.json", "w"), indent=1)
+
+
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 2 and sys.argv[1] == "start":
+        start_main(sys.argv[2])
+    else:
+        main()

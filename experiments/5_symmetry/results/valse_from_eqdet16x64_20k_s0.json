@@ -1,0 +1,518 @@
+{
+ "start": "eqdet16x64_20k_s0",
+ "gate_db": 25,
+ "val_snrs": [
+  0,
+  5,
+  10,
+  15,
+  20,
+  25,
+  30,
+  40,
+  50
+ ],
+ "val_count_acc": {
+  "without": [
+   24.333333333333336,
+   40.33333333333333,
+   52.0,
+   72.33333333333334,
+   91.0,
+   98.33333333333333,
+   99.66666666666667,
+   99.33333333333333,
+   99.0
+  ],
+  "15": [
+   24.333333333333336,
+   40.33333333333333,
+   52.0,
+   68.0,
+   90.33333333333333,
+   97.66666666666667,
+   100.0,
+   100.0,
+   100.0
+  ],
+  "17.5": [
+   24.333333333333336,
+   40.33333333333333,
+   52.0,
+   72.0,
+   90.33333333333333,
+   97.66666666666667,
+   100.0,
+   100.0,
+   100.0
+  ],
+  "20": [
+   24.333333333333336,
+   40.33333333333333,
+   52.0,
+   72.33333333333334,
+   90.0,
+   97.66666666666667,
+   100.0,
+   100.0,
+   100.0
+  ],
+  "22.5": [
+   24.333333333333336,
+   40.33333333333333,
+   52.0,
+   72.33333333333334,
+   91.0,
+   97.66666666666667,
+   100.0,
+   100.0,
+   100.0
+  ],
+  "25": [
+   24.333333333333336,
+   40.33333333333333,
+   52.0,
+   72.33333333333334,
+   91.0,
+   97.66666666666667,
+   100.0,
+   100.0,
+   100.0
+  ],
+  "30": [
+   24.333333333333336,
+   40.33333333333333,
+   52.0,
+   72.33333333333334,
+   91.0,
+   98.33333333333333,
+   100.0,
+   99.66666666666667,
+   99.66666666666667
+  ]
+ },
+ "valse_from_start": {
+  "test": {
+   "-5": {
+    "count_acc": 13.100000000000001,
+    "over_count": 20.9,
+    "raw_count_over_10": 11.1,
+    "chamfer_raw": 0.7289323387432589,
+    "chamfer": 0.7294385710013371,
+    "fnr_oracle": 47.029603174603174,
+    "median_iters": 40.0,
+    "hit_iter_cap": 0.0,
+    "ms_per_signal": 121.83061695098877
+   },
+   "0": {
+    "count_acc": 20.1,
+    "over_count": 20.4,
+    "raw_count_over_10": 8.0,
+    "chamfer_raw": 0.36878377511385907,
+    "chamfer": 0.36982200622703915,
+    "fnr_oracle": 30.3425,
+    "median_iters": 46.0,
+    "hit_iter_cap": 0.0,
+    "ms_per_signal": 151.56385922431946
+   },
+   "5": {
+    "count_acc": 32.2,
+    "over_count": 15.5,
+    "raw_count_over_10": 3.1,
+    "chamfer_raw": 0.1768664471897485,
+    "chamfer": 0.1777253323215836,
+    "fnr_oracle": 16.662341269841264,
+    "median_iters": 46.0,
+    "hit_iter_cap": 0.0,
+    "ms_per_signal": 180.74822068214417
+   },
+   "10": {
+    "count_acc": 50.1,
+    "over_count": 8.3,
+    "raw_count_over_10": 1.5,
+    "chamfer_raw": 0.07411200619418448,
+    "chamfer": 0.07471279776614978,
+    "fnr_oracle": 8.073690476190475,
+    "median_iters": 43.5,
+    "hit_iter_cap": 0.0,
+    "ms_per_signal": 196.54662775993347
+   },
+   "15": {
+    "count_acc": 71.39999999999999,
+    "over_count": 4.3999999999999995,
+    "raw_count_over_10": 0.4,
+    "chamfer_raw": 0.03168218717459149,
+    "chamfer": 0.031999325197159936,
+    "fnr_oracle": 2.866904761904762,
+    "median_iters": 37.0,
+    "hit_iter_cap": 0.1,
+    "ms_per_signal": 250.444340467453
+   },
+   "20": {
+    "count_acc": 88.5,
+    "over_count": 0.6,
+    "raw_count_over_10": 0.2,
+    "chamfer_raw": 0.011786243586945102,
+    "chamfer": 0.01191206567696966,
+    "fnr_oracle": 0.664047619047619,
+    "median_iters": 27.0,
+    "hit_iter_cap": 0.2,
+    "ms_per_signal": 244.8758454322815
+   },
+   "25": {
+    "count_acc": 97.89999999999999,
+    "over_count": 0.1,
+    "raw_count_over_10": 0.0,
+    "chamfer_raw": 0.00520012400973659,
+    "chamfer": 0.0052459676135131715,
+    "fnr_oracle": 0.1875,
+    "median_iters": 22.0,
+    "hit_iter_cap": 0.3,
+    "ms_per_signal": 228.61684608459473
+   },
+   "30": {
+    "count_acc": 99.7,
+    "over_count": 0.0,
+    "raw_count_over_10": 0.0,
+    "chamfer_raw": 0.0025788247081397616,
+    "chamfer": 0.002585536428233176,
+    "fnr_oracle": 0.02361111111111111,
+    "median_iters": 20.0,
+    "hit_iter_cap": 0.3,
+    "ms_per_signal": 205.9228675365448
+   },
+   "35": {
+    "count_acc": 99.8,
+    "over_count": 0.0,
+    "raw_count_over_10": 0.1,
+    "chamfer_raw": 0.0017200253479999364,
+    "chamfer": 0.0017289469353112894,
+    "fnr_oracle": 0.0325,
+    "median_iters": 21.0,
+    "hit_iter_cap": 0.3,
+    "ms_per_signal": 211.28978276252747
+   },
+   "40": {
+    "count_acc": 99.7,
+    "over_count": 0.1,
+    "raw_count_over_10": 0.1,
+    "chamfer_raw": 0.0011517526033037382,
+    "chamfer": 0.0011579861241272616,
+    "fnr_oracle": 0.05611111111111111,
+    "median_iters": 21.0,
+    "hit_iter_cap": 0.3,
+    "ms_per_signal": 220.48911499977112
+   },
+   "45": {
+    "count_acc": 99.5,
+    "over_count": 0.4,
+    "raw_count_over_10": 0.1,
+    "chamfer_raw": 0.0008191668111824235,
+    "chamfer": 0.0008211435566754282,
+    "fnr_oracle": 0.043611111111111114,
+    "median_iters": 21.0,
+    "hit_iter_cap": 0.3,
+    "ms_per_signal": 218.31415581703186
+   },
+   "50": {
+    "count_acc": 98.8,
+    "over_count": 1.0999999999999999,
+    "raw_count_over_10": 0.1,
+    "chamfer_raw": 0.0008257025153160347,
+    "chamfer": 0.0008000411474518862,
+    "fnr_oracle": 0.05611111111111111,
+    "median_iters": 21.0,
+    "hit_iter_cap": 0.2,
+    "ms_per_signal": 209.7670407295227
+   }
+  },
+  "superres05": {
+   "0": {
+    "count_acc": 19.900000000000002,
+    "over_count": 17.5,
+    "raw_count_over_10": 7.199999999999999,
+    "chamfer_raw": 0.32811345213251253,
+    "chamfer": 0.3289346762746575,
+    "fnr_oracle": 42.6525396825396,
+    "median_iters": 50.0,
+    "hit_iter_cap": 0.0,
+    "ms_per_signal": 166.41878509521484
+   },
+   "10": {
+    "count_acc": 40.1,
+    "over_count": 6.6000000000000005,
+    "raw_count_over_10": 0.3,
+    "chamfer_raw": 0.08007355629809201,
+    "chamfer": 0.08075785604178144,
+    "fnr_oracle": 20.57404761904763,
+    "median_iters": 87.0,
+    "hit_iter_cap": 0.7000000000000001,
+    "ms_per_signal": 397.29820728302
+   },
+   "20": {
+    "count_acc": 63.0,
+    "over_count": 1.0999999999999999,
+    "raw_count_over_10": 0.1,
+    "chamfer_raw": 0.024062113951133543,
+    "chamfer": 0.02414600993600515,
+    "fnr_oracle": 10.013015873015886,
+    "median_iters": 104.0,
+    "hit_iter_cap": 2.6,
+    "ms_per_signal": 885.8542523384094
+   },
+   "30": {
+    "count_acc": 81.10000000000001,
+    "over_count": 3.3000000000000003,
+    "raw_count_over_10": 0.0,
+    "chamfer_raw": 0.015030764356402255,
+    "chamfer": 0.014985847346473445,
+    "fnr_oracle": 6.7113095238095335,
+    "median_iters": 154.0,
+    "hit_iter_cap": 8.200000000000001,
+    "ms_per_signal": 1403.3702359199524
+   },
+   "40": {
+    "count_acc": 77.2,
+    "over_count": 14.899999999999999,
+    "raw_count_over_10": 0.4,
+    "chamfer_raw": 0.015956145569668814,
+    "chamfer": 0.015840558046316257,
+    "fnr_oracle": 6.905436507936515,
+    "median_iters": 185.5,
+    "hit_iter_cap": 5.5,
+    "ms_per_signal": 1432.4962692260742
+   },
+   "50": {
+    "count_acc": 70.89999999999999,
+    "over_count": 22.8,
+    "raw_count_over_10": 0.6,
+    "chamfer_raw": 0.018298363738187082,
+    "chamfer": 0.018002800701246203,
+    "fnr_oracle": 7.0088095238095365,
+    "median_iters": 155.5,
+    "hit_iter_cap": 4.2,
+    "ms_per_signal": 1363.2889862060547
+   }
+  },
+  "superres025": {
+   "0": {
+    "count_acc": 17.7,
+    "over_count": 15.2,
+    "raw_count_over_10": 4.7,
+    "chamfer_raw": 0.3157707732001348,
+    "chamfer": 0.31646221694797105,
+    "fnr_oracle": 59.503452380952396,
+    "median_iters": 49.0,
+    "hit_iter_cap": 0.0,
+    "ms_per_signal": 158.90786504745483
+   },
+   "10": {
+    "count_acc": 35.0,
+    "over_count": 2.9000000000000004,
+    "raw_count_over_10": 0.3,
+    "chamfer_raw": 0.06812251021534559,
+    "chamfer": 0.06857175532905785,
+    "fnr_oracle": 37.2555952380952,
+    "median_iters": 87.5,
+    "hit_iter_cap": 0.1,
+    "ms_per_signal": 407.854204416275
+   },
+   "20": {
+    "count_acc": 52.0,
+    "over_count": 0.4,
+    "raw_count_over_10": 0.1,
+    "chamfer_raw": 0.024027122653041813,
+    "chamfer": 0.0240985990144367,
+    "fnr_oracle": 23.776746031746026,
+    "median_iters": 180.0,
+    "hit_iter_cap": 4.9,
+    "ms_per_signal": 1066.1544225215912
+   },
+   "30": {
+    "count_acc": 63.7,
+    "over_count": 4.2,
+    "raw_count_over_10": 0.1,
+    "chamfer_raw": 0.01870718680884153,
+    "chamfer": 0.01867502795878579,
+    "fnr_oracle": 18.160039682539686,
+    "median_iters": 488.5,
+    "hit_iter_cap": 12.4,
+    "ms_per_signal": 1622.138102531433
+   },
+   "40": {
+    "count_acc": 63.4,
+    "over_count": 15.0,
+    "raw_count_over_10": 0.3,
+    "chamfer_raw": 0.02063687890578148,
+    "chamfer": 0.02052549947472998,
+    "fnr_oracle": 18.6247619047619,
+    "median_iters": 480.5,
+    "hit_iter_cap": 4.8,
+    "ms_per_signal": 1573.8371002674103
+   },
+   "50": {
+    "count_acc": 61.5,
+    "over_count": 25.4,
+    "raw_count_over_10": 0.5,
+    "chamfer_raw": 0.023696998172621234,
+    "chamfer": 0.0233852042057804,
+    "fnr_oracle": 18.649682539682544,
+    "median_iters": 340.5,
+    "hit_iter_cap": 3.5000000000000004,
+    "ms_per_signal": 1502.2415916919708
+   }
+  }
+ },
+ "gated": {
+  "test": {
+   "-5": {
+    "count_acc": 11.1,
+    "fnr_oracle": 47.55400793650794,
+    "chamfer": 1.5078105577612004,
+    "share_refined": 0.0
+   },
+   "0": {
+    "count_acc": 27.400000000000002,
+    "fnr_oracle": 22.978968253968254,
+    "chamfer": 0.1734422993583721,
+    "share_refined": 0.0
+   },
+   "5": {
+    "count_acc": 40.1,
+    "fnr_oracle": 11.76281746031746,
+    "chamfer": 0.09020112831692131,
+    "share_refined": 0.0
+   },
+   "10": {
+    "count_acc": 53.300000000000004,
+    "fnr_oracle": 5.705436507936509,
+    "chamfer": 0.048590120995082545,
+    "share_refined": 0.0
+   },
+   "15": {
+    "count_acc": 74.8,
+    "fnr_oracle": 1.9672619047619049,
+    "chamfer": 0.02394968602691631,
+    "share_refined": 0.0
+   },
+   "20": {
+    "count_acc": 88.8,
+    "fnr_oracle": 0.6361507936507936,
+    "chamfer": 0.01181148944364842,
+    "share_refined": 0.0
+   },
+   "25": {
+    "count_acc": 97.8,
+    "fnr_oracle": 0.1986111111111111,
+    "chamfer": 0.005275083407949651,
+    "share_refined": 99.3
+   },
+   "30": {
+    "count_acc": 99.7,
+    "fnr_oracle": 0.02361111111111111,
+    "chamfer": 0.002585536428233176,
+    "share_refined": 100.0
+   },
+   "35": {
+    "count_acc": 99.8,
+    "fnr_oracle": 0.0325,
+    "chamfer": 0.0017289469353112894,
+    "share_refined": 100.0
+   },
+   "40": {
+    "count_acc": 99.7,
+    "fnr_oracle": 0.05611111111111111,
+    "chamfer": 0.0011579861241272616,
+    "share_refined": 100.0
+   },
+   "45": {
+    "count_acc": 99.5,
+    "fnr_oracle": 0.043611111111111114,
+    "chamfer": 0.0008211435566754282,
+    "share_refined": 100.0
+   },
+   "50": {
+    "count_acc": 98.8,
+    "fnr_oracle": 0.05611111111111111,
+    "chamfer": 0.0008000411474518862,
+    "share_refined": 100.0
+   }
+  },
+  "superres05": {
+   "0": {
+    "count_acc": 22.6,
+    "fnr_oracle": 37.97813492063483,
+    "chamfer": 0.15489745400479296,
+    "share_refined": 0.0
+   },
+   "10": {
+    "count_acc": 44.7,
+    "fnr_oracle": 19.232301587301603,
+    "chamfer": 0.050035697158324184,
+    "share_refined": 0.0
+   },
+   "20": {
+    "count_acc": 62.0,
+    "fnr_oracle": 11.333928571428586,
+    "chamfer": 0.024347968840835555,
+    "share_refined": 0.0
+   },
+   "30": {
+    "count_acc": 80.80000000000001,
+    "fnr_oracle": 6.831388888888902,
+    "chamfer": 0.015042280543454979,
+    "share_refined": 98.7
+   },
+   "40": {
+    "count_acc": 77.10000000000001,
+    "fnr_oracle": 6.9715079365079475,
+    "chamfer": 0.015922385205997362,
+    "share_refined": 99.1
+   },
+   "50": {
+    "count_acc": 70.7,
+    "fnr_oracle": 7.132777777777791,
+    "chamfer": 0.018047790944101222,
+    "share_refined": 99.1
+   }
+  },
+  "superres025": {
+   "0": {
+    "count_acc": 20.8,
+    "fnr_oracle": 58.21916666666667,
+    "chamfer": 0.14282090288895416,
+    "share_refined": 0.0
+   },
+   "10": {
+    "count_acc": 35.099999999999994,
+    "fnr_oracle": 37.34075396825392,
+    "chamfer": 0.04953630616220471,
+    "share_refined": 0.0
+   },
+   "20": {
+    "count_acc": 49.9,
+    "fnr_oracle": 27.541587301587303,
+    "chamfer": 0.025510218151418195,
+    "share_refined": 0.0
+   },
+   "30": {
+    "count_acc": 63.1,
+    "fnr_oracle": 18.146984126984126,
+    "chamfer": 0.018846592790104623,
+    "share_refined": 98.5
+   },
+   "40": {
+    "count_acc": 62.8,
+    "fnr_oracle": 18.7004365079365,
+    "chamfer": 0.020649823517104336,
+    "share_refined": 98.7
+   },
+   "50": {
+    "count_acc": 61.1,
+    "fnr_oracle": 18.765357142857148,
+    "chamfer": 0.02348388943603311,
+    "share_refined": 99.0
+   }
+  }
+ }
+}

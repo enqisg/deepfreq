@@ -1,0 +1,47 @@
+{
+ "fnr_threshold_bins": 0.125,
+ "snr": {
+  "0": {
+   "VALSE + clean-up": {
+    "fnr_oracle": 59.57611111111114,
+    "count_acc": 17.1,
+    "chamfer": 0.3152219006032313
+   }
+  },
+  "10": {
+   "VALSE + clean-up": {
+    "fnr_oracle": 36.97722222222219,
+    "count_acc": 34.300000000000004,
+    "chamfer": 0.06627427526696893
+   }
+  },
+  "20": {
+   "VALSE + clean-up": {
+    "fnr_oracle": 23.747103174603154,
+    "count_acc": 54.400000000000006,
+    "chamfer": 0.023870055523796032
+   }
+  },
+  "30": {
+   "VALSE + clean-up": {
+    "fnr_oracle": 21.511150793650796,
+    "count_acc": 57.3,
+    "chamfer": 0.022828147713072285
+   }
+  },
+  "40": {
+   "VALSE + clean-up": {
+    "fnr_oracle": 27.01341269841268,
+    "count_acc": 43.4,
+    "chamfer": 0.029973675280003994
+   }
+  },
+  "50": {
+   "VALSE + clean-up": {
+    "fnr_oracle": 28.00988095238092,
+    "count_acc": 37.0,
+    "chamfer": 0.0319000831896778
+   }
+  }
+ }
+}

@@ -14,6 +14,7 @@ results json):
     fr:<name>                  an FR baseline as in sym_eval_fr.py (results/fr_<name>.json)
     nomp                       NOMP, CFAR stop with the true noise level, 100-step refinement
     anm                        atomic norm denoising, from the estimates sym_anm.py saved
+    valse                      VALSE, from the estimates sym_valse.py saved
 
 Usage:
     python experiments/5_symmetry/sym_stats.py run det:experiments/5_symmetry/models/eqdet16x64_20k_s0.pt:eqdet16x64
@@ -106,11 +107,11 @@ def run(spec):
             x = to_complex(sig)
             out[snr] = _scores(nomp(x, snr_db=snr, joint_iters=100), nomp(x, counts=cnt, joint_iters=100), tgt, cnt)
             print(name, snr, {k: round(float(np.nanmean(v)), 4) for k, v in out[snr].items()}, flush=True)
-    elif spec == "anm":
-        name = "anm"
+    elif spec in ("anm", "valse"):
+        name = spec
         for snr in E.SNRS:
             _, tgt, cnt = load_test_set(snr)
-            d = np.load(RES / "anm_peaks" / f"est_{snr}.npz")
+            d = np.load(RES / {"anm": "anm_peaks", "valse": "valse_est"}[spec] / f"est_{snr}.npz")
             out[snr] = _scores(d["own"], d["oracle"], tgt, cnt)
             print(name, snr, {k: round(float(np.nanmean(v)), 4) for k, v in out[snr].items()}, flush=True)
     else:

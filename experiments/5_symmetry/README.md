@@ -30,12 +30,15 @@ Here it is built in:
 | `sym_train.py` | Trainer. Same training signals and noise as E3, plus a separate validation set (seed 777) so the saved test sets are only used for final numbers |
 | `sym_eval_detector.py` | Test-set evaluation of a detector, with and without the clean-up; count threshold picked on validation data |
 | `sym_baselines.py` | NOMP (Newtonized OMP, 2016) and the Cramér-Rao bound |
+| `sym_anm.py` | Atomic norm denoising (batched ADMM) on the test sets → `results/anm.json` |
+| `sym_valse.py` | VALSE (variational Bayesian line spectra) on the test and robustness sets → `results/valse.json`, `results/hard_<set>_valse.json` |
 | `sym_eval_classical.py` | NOMP + CRB on every test set → `results/sym_nomp_crb.json` |
 | `run_round2.sh` | Round 2 runs (20k steps) and evaluations |
 | `hard_tests.py` | Robustness test sets (very close frequencies, 30 dB amplitude range, coloured noise, spikes) |
 | `sym_eval_hard.py` | DeepFreq 2019, the improved DeepFreq (E6), NOMP and the detector on the robustness sets |
 | `run_round3.sh` | Round 3 runs (60k steps, 3 seeds, count head, data efficiency) and evaluations |
 | `sym_eval_fr.py` | FR-type learned baselines (DeepFreq 2019, cResFreq, SwinFreq, ...) with exactly the same count threshold, clean-up and likelihood check as the detector |
+| `sym_eval_hard_fr.py` | An FR baseline with our post-processing on the robustness sets |
 | `sym_stats.py` | Per-signal scores on the test sets and paired bootstrap comparisons between two systems (95% intervals, one-sided p) |
 | `run_round4.sh` | Round 4 runs: symmetry ablation and the cResFreq / SwinFreq baselines (60k steps), started when round 3's GPU work ends |
 | `models/`, `logs/`, `results/` | Checkpoints, training logs, result files |
@@ -199,6 +202,59 @@ Paired bootstrap: ours is better on all three metrics at every SNR from 0 to
 50 dB (p ≤ 0.015). ANM over-counts above 30 dB (15 % at 50 dB), a known
 weakness of reading frequencies off the dual polynomial; an exact SDP solver
 might do a little better there.
+
+## VALSE (variational Bayesian line spectra)
+
+`sym_valse.py`: VALSE (Badiu, Hansen and Fleury, IEEE TSP 2017), written
+here from the paper (no code was released). Unlike NOMP and ANM it is given
+nothing: it estimates the count, the noise level and the amplitude prior
+itself, and has no setting to pick on validation data. Frequency posteriors
+use the paper's Heuristic 2 (one von Mises each), with the mode found on a
+16x grid plus Newton steps. Same output rules as the other methods (at most
+10 frequencies, the strongest; the 100-step NLS clean-up; with the true
+count, the strongest k, or residual peaks added NOMP-style). 0.06–0.9 s per
+signal on one CPU core.
+
+Check against the paper: 5 unit-amplitude frequencies at least 1 bin apart,
+40 signals each, the count is right in 40/40 at 30 dB (the paper reports a
+success rate close to one from 10 dB up to its highest SNR, 30 dB).
+
+Test sets, count accuracy % / FNR % with the true count / Chamfer:
+
+| | 0 dB | 10 dB | 20 dB | 30 dB | 50 dB |
+|---|---|---|---|---|---|
+| VALSE + clean-up | 19.7 / 30.5 / 0.357 | 49.9 / 8.24 / 0.067 | 82.4 / 1.65 / 0.0145 | 87.6 / 1.98 / 0.0060 | 50.7 / 4.10 / 0.0112 |
+| ANM + clean-up | 14.3 / 29.8 / 0.395 | 40.1 / 8.53 / 0.065 | 85.8 / 1.26 / 0.0127 | 94.2 / 0.65 / 0.0050 | 84.1 / 1.34 / 0.0117 |
+| ours (20k steps) | 27.4 / 23.0 / 0.173 | 53.3 / 5.71 / 0.049 | 88.8 / 0.64 / 0.0118 | 99.2 / 0.14 / 0.0031 | 97.9 / 0.12 / 0.0013 |
+
+Paired bootstrap (`compare_eqdet16x64_20k_s0__valse.json`): ours is better
+on all three metrics at every SNR from 0 to 50 dB (p ≤ 0.009). At −5 dB the
+count and FNR are level and VALSE has the lower Chamfer (it outputs fewer
+frequencies than our threshold count there).
+
+VALSE is the best classical method at 0–15 dB without knowing the noise
+level, but it over-counts more and more above 30 dB (49 % of signals at
+50 dB). Its model is not the cause: started from the true frequencies, it
+keeps the right count on 100/100 signals at 50 dB (37/100 from its usual
+start). Its greedy start, one component at a time from the residual, splits
+close frequencies, and at high SNR the iterations cannot merge them again.
+
+Robustness sets (`hard_<set>_valse.json`), count % / FNR %:
+
+| Set | SNR | VALSE | DeepFreq 2019 FR + same post-processing | ours (20k) |
+|---|---|---|---|---|
+| 0.5 bins apart | 20 dB | 66.5 / 10.5 | 61.9 / 12.0 | 64.3 / 11.3 |
+| 0.5 bins apart | 50 dB | 40.9 / 14.4 | 61.2 / 10.3 | 63.2 / 9.47 |
+| 0.25 bins apart | 20 dB | 54.4 / 23.8 | 49.0 / 27.9 | 53.1 / 27.5 |
+| 0.25 bins apart | 30 dB | 57.3 / 21.5 | 61.2 / 25.3 | 66.5 / 25.2 |
+| 30 dB amplitude range | 30 dB | 79.2 / 2.56 | 93.3 / 1.27 | 98.8 / 0.33 |
+| coloured | 20 dB | 23.4 / 4.89 | 66.5 / 1.35 | 53.7 / 2.27 |
+| spikes | 30 dB | 32.1 / 16.5 | 40.9 / 14.1 | 40.3 / 12.4 |
+
+VALSE resolves frequencies 0.25 bins apart better than both learned models
+when it is told the count (FNR 21–24 % against 25–28 % at 20–30 dB), and is
+close to them at 0.5 bins up to 20 dB. It assumes white noise, and coloured noise
+hurts it more than either learned model.
 
 ## Screening: training with random noise colours
 

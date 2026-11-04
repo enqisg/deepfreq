@@ -1,0 +1,136 @@
+{
+ "snr": {
+  "-5": {
+   "count_acc": 12.8,
+   "over_count": 19.3,
+   "raw_count_over_10": 9.2,
+   "chamfer_raw": 0.7172313702695186,
+   "chamfer": 0.71778241577428,
+   "fnr_oracle": 47.083373015873015,
+   "median_iters": 36.0,
+   "hit_iter_cap": 0.0,
+   "ms_per_signal": 63.920870304107666
+  },
+  "0": {
+   "count_acc": 19.7,
+   "over_count": 17.8,
+   "raw_count_over_10": 5.800000000000001,
+   "chamfer_raw": 0.3558154674395531,
+   "chamfer": 0.3566763918911541,
+   "fnr_oracle": 30.499960317460317,
+   "median_iters": 45.0,
+   "hit_iter_cap": 0.0,
+   "ms_per_signal": 73.65087461471558
+  },
+  "5": {
+   "count_acc": 31.900000000000002,
+   "over_count": 13.3,
+   "raw_count_over_10": 2.5,
+   "chamfer_raw": 0.16472411130141898,
+   "chamfer": 0.16546940767835464,
+   "fnr_oracle": 16.881547619047623,
+   "median_iters": 49.0,
+   "hit_iter_cap": 0.0,
+   "ms_per_signal": 90.02199578285217
+  },
+  "10": {
+   "count_acc": 49.9,
+   "over_count": 5.4,
+   "raw_count_over_10": 0.8,
+   "chamfer_raw": 0.06684023474137393,
+   "chamfer": 0.067303961948461,
+   "fnr_oracle": 8.235079365079365,
+   "median_iters": 56.0,
+   "hit_iter_cap": 0.0,
+   "ms_per_signal": 117.78950834274292
+  },
+  "15": {
+   "count_acc": 69.8,
+   "over_count": 3.9,
+   "raw_count_over_10": 0.6,
+   "chamfer_raw": 0.02903659699502719,
+   "chamfer": 0.029419688275803796,
+   "fnr_oracle": 3.3666269841269836,
+   "median_iters": 66.0,
+   "hit_iter_cap": 0.6,
+   "ms_per_signal": 196.06475186347961
+  },
+  "20": {
+   "count_acc": 82.39999999999999,
+   "over_count": 5.3,
+   "raw_count_over_10": 1.0999999999999999,
+   "chamfer_raw": 0.014169622150866422,
+   "chamfer": 0.014455496498534393,
+   "fnr_oracle": 1.6465079365079367,
+   "median_iters": 86.0,
+   "hit_iter_cap": 1.0999999999999999,
+   "ms_per_signal": 293.08189868927
+  },
+  "25": {
+   "count_acc": 86.9,
+   "over_count": 8.7,
+   "raw_count_over_10": 1.7999999999999998,
+   "chamfer_raw": 0.007546021696053839,
+   "chamfer": 0.007721111484437454,
+   "fnr_oracle": 1.6201587301587304,
+   "median_iters": 141.5,
+   "hit_iter_cap": 2.0,
+   "ms_per_signal": 423.04708886146545
+  },
+  "30": {
+   "count_acc": 87.6,
+   "over_count": 11.1,
+   "raw_count_over_10": 3.0,
+   "chamfer_raw": 0.005785388463123042,
+   "chamfer": 0.005954422849329077,
+   "fnr_oracle": 1.9830555555555556,
+   "median_iters": 218.0,
+   "hit_iter_cap": 4.8,
+   "ms_per_signal": 592.4214041233063
+  },
+  "35": {
+   "count_acc": 83.2,
+   "over_count": 15.9,
+   "raw_count_over_10": 5.1,
+   "chamfer_raw": 0.0068047607532061875,
+   "chamfer": 0.006830530971072175,
+   "fnr_oracle": 2.227777777777778,
+   "median_iters": 320.0,
+   "hit_iter_cap": 8.5,
+   "ms_per_signal": 800.4025523662567
+  },
+  "40": {
+   "count_acc": 71.0,
+   "over_count": 28.199999999999996,
+   "raw_count_over_10": 7.8,
+   "chamfer_raw": 0.009931347236493322,
+   "chamfer": 0.009537256564136551,
+   "fnr_oracle": 3.859246031746032,
+   "median_iters": 485.0,
+   "hit_iter_cap": 5.7,
+   "ms_per_signal": 902.2336714267731
+  },
+  "45": {
+   "count_acc": 54.800000000000004,
+   "over_count": 44.5,
+   "raw_count_over_10": 11.5,
+   "chamfer_raw": 0.012199295038770562,
+   "chamfer": 0.010842033969180757,
+   "fnr_oracle": 4.146388888888889,
+   "median_iters": 495.5,
+   "hit_iter_cap": 1.7999999999999998,
+   "ms_per_signal": 772.1738023757935
+  },
+  "50": {
+   "count_acc": 50.7,
+   "over_count": 48.5,
+   "raw_count_over_10": 13.3,
+   "chamfer_raw": 0.01319299514342731,
+   "chamfer": 0.011225568821920816,
+   "fnr_oracle": 4.100476190476191,
+   "median_iters": 462.5,
+   "hit_iter_cap": 1.5,
+   "ms_per_signal": 729.1593563556671
+  }
+ }
+}

@@ -133,3 +133,69 @@ cost about 5× the time, so they are off by default.
 Metric note: `data/loss.fnr` pads missing estimates with −1, which on the
 frequency circle equals 0, so a padded slot can "hit" a true frequency near 0.
 `sym_stats.py` scores each signal without the padding.
+
+## Fair comparison and significance (20k-step detector, 1 seed)
+
+DeepFreq 2019's FR model, given exactly our post-processing (count by
+threshold, clean-up, likelihood check with the local floor, all tuned on
+validation data), is far better than the 2019 system with its FC model
+(count accuracy at 30 dB 97.8 % vs 64.1 %). So much of the gain over the
+2019 paper comes from the post-processing, and the paper says so. Against
+that stronger baseline, paired bootstrap over the 1000 test signals per SNR
+(10k resamples, `sym_stats.py`), difference ours − theirs with 95 % interval:
+
+| | FNR, points (true count) | Count accuracy, points | Chamfer |
+|---|---|---|---|
+| vs DeepFreq 2019 FR + same post-processing | lower at 0–50 dB (0 dB −1.2 [−1.7, −0.6], 30 dB −0.41 [−0.58, −0.24]), all p < 0.001; −5 dB level | level at 0–10 dB; higher at 15–50 dB (15 dB +5.7 [+3.1, +8.4], 30 dB +1.4 [+0.4, +2.4]), p ≤ 0.03 | lower at 0–50 dB (p ≤ 0.035); **higher at −5 dB** |
+| vs NOMP (true noise level) | lower at 0–20 dB (0 dB −7.6 [−8.4, −6.9]); level at 25–50 dB | higher at 0–50 dB (0–15 dB +8 to +11, 20–50 dB +1 to +4), p < 0.01 | lower at 0–50 dB; higher at −5 dB |
+
+At −5 dB every system with a threshold count puts out close to 10
+frequencies (over-counting 87–89 %); ours is no worse on misses or count
+accuracy but has a higher Chamfer there. The count head in round 3 is meant
+to fix this.
+
+## Robustness with the fair baseline
+
+`sym_eval_hard_fr.py` runs an FR baseline with our post-processing on the
+robustness sets. Count accuracy % at 10 / 20 / 30 / 50 dB, ours (20k-step
+detector) vs DeepFreq 2019's FR model with the same post-processing:
+
+| Set | Ours | DeepFreq 2019 FR + same post-processing |
+|---|---|---|
+| frequencies 0.5 bins apart | 44.7 / 64.3 / 82.4 / 63.2 | 42.4 / 61.9 / 76.6 / 61.2 |
+| 0.25 bins apart | 35.1 / 53.1 / 66.5 / 48.8 | 37.2 / 49.0 / 61.2 / 51.2 |
+| 30 dB amplitude range | 39.7 / 74.6 / 98.8 / 97.9 | 40.2 / 70.3 / 93.3 / 93.8 |
+| coloured noise (AR(1), 0.8) | **15.7 / 53.7 / 87.3** / 90.7 | **25.2 / 66.5 / 91.5** / 89.0 |
+| spikes | 36.2 / 40.5 / 40.3 / 40.0 | 34.9 / 39.6 / 40.9 / 40.6 |
+
+Ours is ahead on close frequencies (20–40 dB) and the wide amplitude range,
+level on spikes (slightly fewer misses and lower Chamfer), and **behind on
+coloured noise at 10–30 dB**. On pure noise scaled to signal power, our
+detector fires 1.2 times per signal on white noise but 9.1 times on AR(1)
+noise, while DeepFreq's FR model fires about 9.5 times on both: ours has
+learned to tell white noise from sinusoids, and that cue does not carry over
+to strongly coloured noise (AR(1) noise near 0 Hz looks like a narrow band of
+tones over 50 samples). Options: train every learned method with random noise
+colours, or whiten the input with a residual AR fit before the detector.
+
+## Atomic norm denoising (ANM)
+
+`sym_anm.py`: ANM (Bhaskar, Tang and Recht, 2013) with the true noise level
+in its regularisation weight, as NOMP gets. Solved by a batched ADMM written
+here (it matches a CVXPY solve to 1e-6 on test signals; 1000 steps up to
+30 dB, 2000 above, where it converges more slowly). Frequencies are the dual
+polynomial's peaks within delta of 1 (delta = 0.005, picked on validation),
+then the same 100-step NLS clean-up as every other method. About 0.4–1.1 s
+per signal on one CPU core.
+
+Test sets, count accuracy % / FNR % with the true count / Chamfer:
+
+| | 0 dB | 10 dB | 20 dB | 30 dB | 50 dB |
+|---|---|---|---|---|---|
+| ANM + clean-up | 14.3 / 29.8 / 0.395 | 40.1 / 8.53 / 0.065 | 85.8 / 1.26 / 0.0127 | 94.2 / 0.65 / 0.0050 | 84.1 / 1.34 / 0.0117 |
+| ours (20k steps) | 27.4 / 23.0 / 0.173 | 53.3 / 5.71 / 0.049 | 88.8 / 0.64 / 0.0118 | 99.2 / 0.14 / 0.0031 | 97.9 / 0.12 / 0.0013 |
+
+Paired bootstrap: ours is better on all three metrics at every SNR from 0 to
+50 dB (p ≤ 0.015). ANM over-counts above 30 dB (15 % at 50 dB), a known
+weakness of reading frequencies off the dual polynomial; an exact SDP solver
+might do a little better there.

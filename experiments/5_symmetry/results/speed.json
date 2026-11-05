@@ -1,0 +1,31 @@
+{
+ "machine": "x86_64",
+ "cpus": 4,
+ "torch": "2.14.1+cu130",
+ "snr_db": 20,
+ "checkpoint": "eqdet16x64c_60k_s0.pt",
+ "params": {
+  "ours": 420332,
+  "deepfreq_fr": 1049920,
+  "deepfreq_fc": 63786
+ },
+ "ms": {
+  "ours network + count head, batch 1000, 4 thr": 2.3747435040022538,
+  "DeepFreq FR+FC, batch 1000, 4 thr": 0.5332531050007674,
+  "DeepFreq FR only, batch 1000, 4 thr": 0.41630709300079616,
+  "ours network + count head, batch 1, 4 thr": 3.888556330002757,
+  "DeepFreq FR+FC, batch 1, 4 thr": 2.737672235016362,
+  "ours network + count head, batch 1000, 1 thr": 6.636270601997239,
+  "DeepFreq FR+FC, batch 1000, 1 thr": 1.829688026002259,
+  "DeepFreq FR only, batch 1000, 1 thr": 1.4773174299989478,
+  "ours network + count head, batch 1, 1 thr": 4.792961599996488,
+  "DeepFreq FR+FC, batch 1, 1 thr": 2.3488791350064275,
+  "DeepFreq peak picking (its own count)": 0.015976380006274365,
+  "ours decode (count head)": 0.005672430003566357,
+  "clean-up: joint NLS, 100 steps": 5.678797976664403,
+  "likelihood check (add/drop, SNR-gated)": 19.00348922333554,
+  "NOMP (CFAR stop)": 25.15967945997545,
+  "ANM (ADMM, 1000 it, batch 50)": 416.186675200006,
+  "VALSE (own count) + clean-up": 469.1403397999238
+ }
+}

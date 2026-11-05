@@ -1,0 +1,198 @@
+{
+ "fnr_threshold_bins": 0.125,
+ "detector": "experiments/5_symmetry/models/eqdet16x64c_60k_wide3k_s0.pt",
+ "snr": {
+  "0": {
+   "DeepFreq 2019": {
+    "fnr_oracle": 57.090714285714334,
+    "count_acc": 18.4,
+    "chamfer": 0.1831097611811339,
+    "median_err": 0.2369580745697042
+   },
+   "E6 system": {
+    "fnr_oracle": 57.086825396825404,
+    "count_acc": 24.9,
+    "chamfer": 0.1541236807756657,
+    "median_err": 0.2513783374405332
+   },
+   "NOMP (true noise power)": {
+    "fnr_oracle": 60.27337301587306,
+    "count_acc": 15.4,
+    "chamfer": 0.17245264558695003,
+    "median_err": 0.711814388040577
+   },
+   "Symmetry-aware detector + checks": {
+    "fnr_oracle": 58.07130952380962,
+    "count_acc": 22.2,
+    "chamfer": 0.12786261555875536,
+    "median_err": 0.2834036946296692
+   },
+   "Symmetry-aware detector, count head + checks": {
+    "fnr_oracle": 58.07130952380962,
+    "count_acc": 24.4,
+    "chamfer": 0.14233886591653572,
+    "median_err": 0.2777792513370514
+   }
+  },
+  "10": {
+   "DeepFreq 2019": {
+    "fnr_oracle": 41.8486507936508,
+    "count_acc": 31.7,
+    "chamfer": 0.06444975828154152,
+    "median_err": 0.1487926386296745
+   },
+   "E6 system": {
+    "fnr_oracle": 38.96658730158725,
+    "count_acc": 36.8,
+    "chamfer": 0.05003666382591284,
+    "median_err": 0.1256838880397848
+   },
+   "NOMP (true noise power)": {
+    "fnr_oracle": 38.05912698412697,
+    "count_acc": 31.3,
+    "chamfer": 0.05034066422185228,
+    "median_err": 0.13132316425144008
+   },
+   "Symmetry-aware detector + checks": {
+    "fnr_oracle": 37.441587301587234,
+    "count_acc": 37.4,
+    "chamfer": 0.04908931102119095,
+    "median_err": 0.11801160871982574
+   },
+   "Symmetry-aware detector, count head + checks": {
+    "fnr_oracle": 37.441587301587234,
+    "count_acc": 37.8,
+    "chamfer": 0.04857345310282835,
+    "median_err": 0.11942088603973389
+   }
+  },
+  "20": {
+   "DeepFreq 2019": {
+    "fnr_oracle": 35.188095238095244,
+    "count_acc": 38.6,
+    "chamfer": 0.04576875480774953,
+    "median_err": 0.1074211537837988
+   },
+   "E6 system": {
+    "fnr_oracle": 31.009841269841257,
+    "count_acc": 46.0,
+    "chamfer": 0.03212010417626291,
+    "median_err": 0.08253959534441635
+   },
+   "NOMP (true noise power)": {
+    "fnr_oracle": 26.923849206349182,
+    "count_acc": 50.0,
+    "chamfer": 0.0272627546899105,
+    "median_err": 0.06116541682981147
+   },
+   "Symmetry-aware detector + checks": {
+    "fnr_oracle": 27.257499999999993,
+    "count_acc": 50.7,
+    "chamfer": 0.025423716620678313,
+    "median_err": 0.05910680134473267
+   },
+   "Symmetry-aware detector, count head + checks": {
+    "fnr_oracle": 27.257499999999993,
+    "count_acc": 50.3,
+    "chamfer": 0.025562407719221147,
+    "median_err": 0.06005056121600183
+   }
+  },
+  "30": {
+   "DeepFreq 2019": {
+    "fnr_oracle": 33.27412698412698,
+    "count_acc": 39.6,
+    "chamfer": 0.042849905425440295,
+    "median_err": 0.0997645616531373
+   },
+   "E6 system": {
+    "fnr_oracle": 29.895952380952366,
+    "count_acc": 46.7,
+    "chamfer": 0.02843041671238191,
+    "median_err": 0.07298368415072642
+   },
+   "NOMP (true noise power)": {
+    "fnr_oracle": 24.291468253968237,
+    "count_acc": 64.7,
+    "chamfer": 0.026570008292798895,
+    "median_err": 0.038810605930456044
+   },
+   "Symmetry-aware detector + checks": {
+    "fnr_oracle": 25.224523809523802,
+    "count_acc": 62.7,
+    "chamfer": 0.022578140850061816,
+    "median_err": 0.03734711658714973
+   },
+   "Symmetry-aware detector, count head + checks": {
+    "fnr_oracle": 25.224523809523802,
+    "count_acc": 62.6,
+    "chamfer": 0.02232659694686385,
+    "median_err": 0.03650366582323983
+   }
+  },
+  "40": {
+   "DeepFreq 2019": {
+    "fnr_oracle": 33.30087301587299,
+    "count_acc": 38.9,
+    "chamfer": 0.04227119704142562,
+    "median_err": 0.09762362837791305
+   },
+   "E6 system": {
+    "fnr_oracle": 29.715238095238085,
+    "count_acc": 48.199999999999996,
+    "chamfer": 0.027530902888083936,
+    "median_err": 0.07074095801788693
+   },
+   "NOMP (true noise power)": {
+    "fnr_oracle": 23.548531746031735,
+    "count_acc": 58.4,
+    "chamfer": 0.036476525746111876,
+    "median_err": 0.03287126071547242
+   },
+   "Symmetry-aware detector + checks": {
+    "fnr_oracle": 24.86297619047619,
+    "count_acc": 60.099999999999994,
+    "chamfer": 0.02727565623995537,
+    "median_err": 0.03220375946065279
+   },
+   "Symmetry-aware detector, count head + checks": {
+    "fnr_oracle": 24.86297619047619,
+    "count_acc": 59.4,
+    "chamfer": 0.027258099509045428,
+    "median_err": 0.03199068020141582
+   }
+  },
+  "50": {
+   "DeepFreq 2019": {
+    "fnr_oracle": 33.33674603174602,
+    "count_acc": 39.0,
+    "chamfer": 0.04230306167703378,
+    "median_err": 0.09637192487716995
+   },
+   "E6 system": {
+    "fnr_oracle": 29.58460317460316,
+    "count_acc": 49.3,
+    "chamfer": 0.027356192092878377,
+    "median_err": 0.07017968992259482
+   },
+   "NOMP (true noise power)": {
+    "fnr_oracle": 23.819722222222207,
+    "count_acc": 45.0,
+    "chamfer": 0.048987431108130884,
+    "median_err": 0.03218824563115397
+   },
+   "Symmetry-aware detector + checks": {
+    "fnr_oracle": 24.84230158730158,
+    "count_acc": 52.5,
+    "chamfer": 0.03416791314215389,
+    "median_err": 0.03102659121935747
+   },
+   "Symmetry-aware detector, count head + checks": {
+    "fnr_oracle": 24.84230158730158,
+    "count_acc": 52.2,
+    "chamfer": 0.033697688786181325,
+    "median_err": 0.030209120020033287
+   }
+  }
+ }
+}

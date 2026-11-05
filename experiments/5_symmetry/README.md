@@ -40,6 +40,7 @@ Here it is built in:
 | `sym_eval_fr.py` | FR-type learned baselines (DeepFreq 2019, cResFreq, SwinFreq, ...) with exactly the same count threshold, clean-up and likelihood check as the detector |
 | `sym_eval_hard_fr.py` | An FR baseline with our post-processing on the robustness sets |
 | `sym_stats.py` | Per-signal scores on the test sets and paired bootstrap comparisons between two systems (95% intervals, one-sided p) |
+| `sym_speed.py` | Run time per signal of every system on one CPU at 20 dB → `results/speed.json` |
 | `sym_summary.py` | Tables over seeds (mean ± sd), data efficiency and the symmetry ablation from the `det_*.json` files |
 | `run_round4.sh` | Round 4 runs: symmetry ablation and the cResFreq / SwinFreq baselines (60k steps), started when round 3's GPU work ends |
 | `run_round5.sh` | Round 5 runs: shift augmentation without built-in symmetry, a colour-trained 60k-step detector and a second seed of the DeepFreq-front-end model, started when round 4's GPU work ends |
@@ -181,6 +182,106 @@ were fine-tuned in exactly the same way on the cloud CPU (about 43 min each):
 - Against the released DeepFreq 2019 weights: FNR better at every SNR,
   count better at every SNR except 20 dB on seed 1 (level), Chamfer better
   at -5 dB and from 10 dB, level at 0-5 dB.
+
+## Run time (one CPU, 20 dB)
+
+`sym_speed.py` on the cloud machine (4 x86 cores, PyTorch 2.14, no GPU), ms per
+signal. Networks with 4 threads, the rest single-threaded.
+
+| Step | ms per signal |
+|---|---|
+| Our network with count head, batch 1000 (batch 1) | 2.4 (3.9) |
+| DeepFreq FR + FC models, batch 1000 (batch 1) | 0.53 (2.7) |
+| DeepFreq peak picking | 0.02 |
+| Clean-up, joint NLS 100 steps | 5.7 |
+| Likelihood check (add/drop, SNR-gated) | 19.0 |
+| NOMP (CFAR stop) | 25.2 |
+| ANM (ADMM, 1000 iterations, batched) | 416 |
+| VALSE with its own count, plus clean-up | 469 |
+
+- Our full system takes about 27 ms per signal, the same as DeepFreq with
+  our post-processing (about 25 ms) and NOMP (25 ms), and about 15 to 17
+  times less than ANM and VALSE.
+- Our network has 2.5x fewer parameters than DeepFreq's FR model (0.42M
+  against 1.05M) but needs more compute: 199 MFLOP per signal against 91
+  for the FR and FC models together, and it is about 4.5x slower at batch
+  1000. The 16 circular ResBlocks on the 250-point grid cost more than
+  DeepFreq's upsampling path. Plain DeepFreq (no clean-up) is by far the
+  fastest system at 0.55 ms, but it is also the least accurate.
+- Post-processing dominates. Without the likelihood check our system takes
+  about 8 ms per signal.
+
+## Colour and wide-noise fine-tune (both systems, seed 0)
+
+Same recipe as the wide fine-tune, plus `--augment-colour` (half the
+training signals get AR(1) noise of random colour): 3000 steps, lr 3e-4,
+`--noise-snr 0.316 --augment-colour --init`, for our 60k seed-0 detector
+(`eqdet16x64c_60k_widecol3k_s0`) and DeepFreq's FR architecture trained 60k
+steps (`deepfreq20x64_60k_widecol3k_s0`). `sym_train.py`'s coloured noise now
+takes the same SNR range as the white noise (default unchanged). Count % /
+Chamfer / FNR % from per-signal `sym_stats.py`:
+
+| System | -5 dB | 0 dB | 10 dB | 20 dB | 30 dB | 50 dB |
+|---|---|---|---|---|---|---|
+| ours, colour + wide | 21.4 / 0.496 / 40.7 | 31.0 / 0.196 / 23.3 | 56.4 / 0.056 / 6.02 | 87.9 / 0.013 / 0.64 | 99.3 / 0.003 / 0.09 | 97.1 / 0.001 / 0.09 |
+| DeepFreq architecture, colour + wide, + our post-processing | 15.6 / 0.446 / 44.4 | 23.8 / 0.192 / 25.6 | 47.7 / 0.064 / 7.97 | 84.8 / 0.015 / 1.71 | 94.9 / 0.006 / 1.04 | 92.8 / 0.004 / 1.05 |
+
+Paired bootstrap, ours colour + wide against:
+- DeepFreq's architecture with the same fine-tune: count and FNR better at
+  every SNR from -5 to 50 dB (p < 0.001 each; +3 to +9 count points),
+  Chamfer better from 10 dB, level at 0 to 5 dB, worse at -5 dB.
+- NOMP, ANM and VALSE: count, Chamfer and FNR better at -5 dB too (count
+  +10.6, +11.2 and +8.6 points), and count and FNR better at almost every
+  SNR above (NOMP count level at 20 to 25 dB, FNR level from 25 dB).
+- DeepFreq 2019 with our post-processing: FNR better everywhere, count
+  better or level everywhere (level at 10, 20 and 50 dB), Chamfer worse at
+  0 dB only.
+- Our wide-only model: the colour training costs 0.3 to 4 count points at
+  15 to 30 dB and at 50 dB, a little Chamfer below 25 dB and up to 0.9
+  points of misses (at -5 dB); elsewhere level.
+
+So one fine-tuned model now covers white and coloured noise from -5 dB up,
+and against the same fine-tune of DeepFreq's architecture it wins on count
+and misses everywhere, on the standard test sets and on all five robustness
+sets. Seed 1 is being fine-tuned the same way.
+
+## Robustness sets with the 60k-step models (seed 0)
+
+`sym_eval_hard.py` and `sym_eval_hard_fr.py` on the five harder sets
+(`hard_tests.py`), cloud CPU. Count accuracy % / Chamfer (bins), each the
+mean over 0, 10, 20, 30, 40 and 50 dB; `python sym_summary.py hard` also
+prints FNR. Bold rows: both systems after the same colour and wide-noise
+fine-tune (next section); all other networks saw white noise only.
+
+| System | 0.5 bins apart | 0.25 bins apart | 30 dB amplitude range | coloured (AR(1), 0.8) | spikes |
+|---|---|---|---|---|---|
+| ours, 60k | 59.5 / 0.054 | 48.2 / 0.056 | 74.1 / 0.057 | 58.9 / 0.304 | 38.2 / 0.213 |
+| ours, 60k + wide fine-tune | 59.4 / 0.049 | 47.8 / 0.050 | 73.4 / 0.062 | 59.5 / 0.293 | 41.2 / 0.119 |
+| **ours, 60k + colour and wide fine-tune** | 58.7 / 0.052 | 47.4 / 0.053 | 72.0 / 0.071 | 73.1 / 0.057 | 40.2 / 0.131 |
+| DeepFreq 2019 FR model + our post-processing | 56.0 / 0.053 | 46.4 / 0.054 | 69.5 / 0.062 | 62.5 / 0.205 | 36.6 / 0.131 |
+| DeepFreq architecture, 60k + our post-processing | 55.9 / 0.053 | 45.8 / 0.054 | 65.5 / 0.066 | 64.4 / 0.171 | 36.1 / 0.133 |
+| DeepFreq architecture, 60k + wide fine-tune + our post-processing | 55.3 / 0.050 | 45.8 / 0.052 | 64.0 / 0.068 | 63.7 / 0.164 | 36.2 / 0.119 |
+| **DeepFreq architecture, 60k + colour and wide fine-tune + our post-processing** | 55.2 / 0.052 | 45.1 / 0.053 | 63.5 / 0.072 | 66.7 / 0.114 | 35.1 / 0.131 |
+| DeepFreq 2019 (FR + FC models, as released) | 40.5 / 0.072 | 34.4 / 0.070 | 48.8 / 0.081 | 44.5 / 0.235 | 30.7 / 0.144 |
+| NOMP (true noise power) | 53.1 / 0.062 | 44.1 / 0.060 | 69.0 / 0.077 | 21.8 / 0.269 | 10.8 / 1.010 |
+| VALSE + clean-up | 47.9 / 0.082 | 40.6 / 0.082 | 55.0 / 0.095 | 41.2 / 0.330 | 28.8 / 0.172 |
+- Close frequencies and a wide amplitude range: ours is best on count
+  everywhere (for example 74.1 against 69.5 % for the DeepFreq FR model with
+  the same post-processing at a 30 dB amplitude range) and level or better
+  on Chamfer and misses.
+- Spikes: ours counts best from 10 to 50 dB (41-46 % against 35-41 %), but
+  the 60k model was poor at 0 dB (11 against 22 %). The wide-noise fine-tune
+  fixes that: mean count 41.2 % and Chamfer 0.119, level with the best.
+- Coloured noise was the clear weak spot of the white-trained models. Ours
+  was worse at 10 to 20 dB (count 18.5 and 50.3 % against 25.2 and 66.5 %
+  for the DeepFreq FR model, and 37.2 and 72.2 % for DeepFreq's architecture
+  trained 60k steps) and better from 40 dB; the wide fine-tune did not help.
+- After the same colour and wide-noise fine-tune of both systems, ours is
+  better than DeepFreq's architecture on count and misses on all five sets
+  and level or better on Chamfer: coloured 73.1 against 66.7 % (Chamfer
+  0.057 against 0.114), spikes 40.2 against 35.1 %, amplitude range 72.0
+  against 63.5 %. Per SNR on the coloured set: 36.8 against 15.9 % at 0 dB,
+  57.4 against 45.9 % at 10 dB, level at 20 to 30 dB, better at 40 to 50 dB.
 
 ## Likelihood check: local noise floor
 

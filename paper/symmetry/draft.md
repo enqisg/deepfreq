@@ -239,6 +239,15 @@ Chamfer better from 10 dB, level at 0-5 dB, worse at -5 dB (0.44 vs 0.40).
 TODO: decide whether the main table uses the extended range for all
 systems (fairer to report both).
 
+### 6.1c One model for white and coloured noise from -5 dB (seed 0; seed 1 TODO)
+
+The same fine-tune with random AR(1) noise colours added (both systems):
+ours against DeepFreq's architecture is better on count and FNR at every SNR
+from -5 to 50 dB ($p<0.001$; e.g. 10 dB: 56.4 against 47.7 % count, 6.0
+against 8.0 % misses), better on Chamfer from 10 dB. It also beats NOMP,
+ANM and VALSE at -5 dB on all three metrics. The colour training costs at
+most 4 count points against our white-only fine-tune (15 dB).
+
 ### 6.2 Accuracy against the Cramér-Rao bound (prov.)
 
 Median absolute error with the true count, bins:
@@ -272,11 +281,43 @@ FNR and Chamfer at 0-50 dB.
 
 ### 6.5 Robustness
 
-TODO: tables from `hard_*` results, including the colour-trained model.
+Five harder sets (count accuracy % / Chamfer in bins, mean over 0-50 dB;
+seed 0). Bold: both systems after the same colour and wide-noise fine-tune;
+the other networks saw white noise only.
+
+| System | 0.5 bins apart | 0.25 bins apart | 30 dB amplitude range | coloured (AR(1), 0.8) | spikes |
+|---|---|---|---|---|---|
+| ours, 60k | 59.5 / 0.054 | 48.2 / 0.056 | 74.1 / 0.057 | 58.9 / 0.304 | 38.2 / 0.213 |
+| ours, 60k + wide fine-tune | 59.4 / 0.049 | 47.8 / 0.050 | 73.4 / 0.062 | 59.5 / 0.293 | 41.2 / 0.119 |
+| **ours, 60k + colour and wide fine-tune** | 58.7 / 0.052 | 47.4 / 0.053 | 72.0 / 0.071 | 73.1 / 0.057 | 40.2 / 0.131 |
+| DeepFreq 2019 FR model + our post-processing | 56.0 / 0.053 | 46.4 / 0.054 | 69.5 / 0.062 | 62.5 / 0.205 | 36.6 / 0.131 |
+| DeepFreq architecture, 60k + our post-processing | 55.9 / 0.053 | 45.8 / 0.054 | 65.5 / 0.066 | 64.4 / 0.171 | 36.1 / 0.133 |
+| DeepFreq architecture, 60k + wide fine-tune + our post-processing | 55.3 / 0.050 | 45.8 / 0.052 | 64.0 / 0.068 | 63.7 / 0.164 | 36.2 / 0.119 |
+| **DeepFreq architecture, 60k + colour and wide fine-tune + our post-processing** | 55.2 / 0.052 | 45.1 / 0.053 | 63.5 / 0.072 | 66.7 / 0.114 | 35.1 / 0.131 |
+| DeepFreq 2019 (FR + FC models, as released) | 40.5 / 0.072 | 34.4 / 0.070 | 48.8 / 0.081 | 44.5 / 0.235 | 30.7 / 0.144 |
+| NOMP (true noise power) | 53.1 / 0.062 | 44.1 / 0.060 | 69.0 / 0.077 | 21.8 / 0.269 | 10.8 / 1.010 |
+| VALSE + clean-up | 47.9 / 0.082 | 40.6 / 0.082 | 55.0 / 0.095 | 41.2 / 0.330 | 28.8 / 0.172 |
+Trained on white noise only, our detector is best on close frequencies and
+on a 30 dB amplitude range but weak on coloured noise at 10-20 dB. After a
+3000-step fine-tune with random noise colours and noise down to -5 dB,
+given to both systems, ours beats DeepFreq's architecture on count and
+misses on all five sets (coloured: 73.1 against 66.7 %, Chamfer 0.057
+against 0.114) and is level or better on Chamfer.
 
 ### 6.6 Real data
 
 TODO: depends on access to a real recording set (NSynth test split asked).
+
+### 6.7 Run time
+
+Per signal on one 4-core x86 CPU at 20 dB (`results/speed.json`): our
+network with its count head 2.4 ms at batch 1000 (3.9 ms at batch 1), the
+DeepFreq FR and FC models 0.53 ms (2.7 ms); clean-up 5.7 ms and likelihood
+check 19.0 ms (single thread), so about 27 ms for our full system against
+about 25 ms for DeepFreq with the same post-processing, 25 ms for NOMP,
+416 ms for ANM and 469 ms for VALSE. Our network has 2.5x fewer parameters
+than DeepFreq's FR model but about 2.2x more FLOPs (199 against 91 MFLOP per
+signal, FR plus FC).
 
 ## 7 Limitations
 
@@ -286,6 +327,9 @@ TODO: depends on access to a real recording set (NSynth test split asked).
 - Trained on white noise with SNR at least 0 dB; -5 dB is outside the
   training range, and coloured noise needs colour-augmented training.
 - $N = 50$ and $K \le 10$ throughout, as in DeepFreq.
+- Fewer parameters but more compute than DeepFreq's networks; the full
+  system's run time is set by the post-processing, which the learned
+  baselines share.
 
 ## References (to format)
 

@@ -6,6 +6,9 @@
       data efficiency: det_<model>_n<N>[aug]_s0.json for both front-ends
   python experiments/5_symmetry/sym_summary.py ablation
       the 2x2 symmetry ablation at 60k steps (seed 0, or mean over seeds)
+  python experiments/5_symmetry/sym_summary.py hard [DET_STEM ...]
+      robustness sets (results/hard_<set>_*.json): count accuracy, FNR and
+      Chamfer averaged over the six SNRs, for each system and set
 
 Each cell is FNR % with the true count / count accuracy % / Chamfer (bins),
 after the clean-up and likelihood check.  For models with a count head the
@@ -64,6 +67,56 @@ def table(rows):
         print(f"| {label} | {len(runs)} | " + " | ".join(cell(runs, s, head) for s in SNRS) + " |")
 
 
+HARD_SETS = ["superres05", "superres025", "widerange", "colored", "impulsive"]
+HARD_FR = [("DeepFreq 2019 FR model + our post-processing", "fr_deepfreq2019"),
+           ("DeepFreq architecture, 60k steps + our post-processing", "fr_deepfreq20x64_60k"),
+           ("DeepFreq architecture, 60k + wide fine-tune + our post-processing", "fr_deepfreq20x64_60k_wide3k_s0"),
+           ("DeepFreq architecture, 60k + colour and wide fine-tune + our post-processing",
+            "fr_deepfreq20x64_60k_widecol3k_s0")]
+
+
+def hard_rows(stems):
+    """{label: {set: [count, fnr, chamfer] averaged over SNRs}}"""
+    rows = {}
+
+    def put(label, st, r):
+        rows.setdefault(label, {})[st] = [np.mean([v[k] for v in r]) for k in ("count_acc", "fnr_oracle", "chamfer")]
+
+    for st in HARD_SETS:
+        base = None
+        for stem in stems:
+            p = RES / f"hard_{st}_{stem}.json"
+            if not p.exists():
+                continue
+            d = json.load(open(p))["snr"]
+            if base is None:
+                base = d
+            put(f"ours: {stem}", st, [v["Symmetry-aware detector, count head + checks"] for v in d.values()])
+        if base is not None:
+            for name in ("DeepFreq 2019", "E6 system", "NOMP (true noise power)"):
+                put(name, st, [v[name] for v in base.values()])
+        for label, stem in HARD_FR:
+            p = RES / f"hard_{st}_{stem}.json"
+            if p.exists():
+                d = json.load(open(p))["snr"]
+                put(label, st, [list(v.values())[0] for v in d.values()])
+        p = RES / f"hard_{st}_valse.json"
+        if p.exists():
+            put("VALSE + clean-up", st, [v["VALSE + clean-up"] for v in json.load(open(p))["snr"].values()])
+    return rows
+
+
+def hard(stems):
+    rows = hard_rows(stems)
+    for i, metric in enumerate(["count accuracy %", "FNR % (true count)", "Chamfer (bins)"]):
+        print(f"\n{metric}, mean over 0-50 dB\n")
+        print("| System | " + " | ".join(HARD_SETS) + " |")
+        print("|---" * (len(HARD_SETS) + 1) + "|")
+        for label, r in rows.items():
+            fmt = "{:.1f}" if i < 2 else "{:.3f}"
+            print(f"| {label} | " + " | ".join(fmt.format(r[s][i]) if s in r else "-" for s in HARD_SETS) + " |")
+
+
 def main():
     mode, args = sys.argv[1], [a for a in sys.argv[2:] if not a.startswith("--")]
     both = "--both" in sys.argv
@@ -83,6 +136,8 @@ def main():
         table(rows)
     elif mode == "ablation":
         table([(label, seeds(p)) for label, p in ABLATION])
+    elif mode == "hard":
+        hard(args or ["eqdet16x64c_60k_s0", "eqdet16x64c_60k_wide3k_s0"])
     else:
         raise SystemExit(__doc__)
 

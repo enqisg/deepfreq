@@ -62,8 +62,8 @@ def validation_set():
     return noisy, f
 
 
-def coloured_blind_noise(s, p=0.5, a_max=0.9, generator=None):
-    """Like noise_torch(s, 1.0, "gaussian_blind"), but a fraction p of the
+def coloured_blind_noise(s, p=0.5, a_max=0.9, generator=None, snr=1.0):
+    """Like noise_torch(s, snr, "gaussian_blind"), but a fraction p of the
     signals get complex AR(1) noise, z[t] = a z[t-1] + sqrt(1-|a|^2) w[t],
     with |a| uniform in [0, a_max] and a random angle, so the noise is
     strongest at a random frequency.  Noise energy as in gaussian_blind."""
@@ -81,6 +81,8 @@ def coloured_blind_noise(s, p=0.5, a_max=0.9, generator=None):
     noise = torch.stack([z.real, z.imag], 1).to(s.dtype)
     sig = s.reshape(b, -1)
     mult = torch.rand(b, generator=generator).to(dev) * torch.norm(sig, dim=1) / torch.norm(noise.reshape(b, -1), dim=1)
+    if snr != 1.0:
+        mult = mult / float(np.sqrt(snr))
     return s + noise * mult[:, None, None]
 
 
@@ -227,7 +229,7 @@ def main():
             z = torch.complex(sig[:, 0], sig[:, 1]) * rot
             sig = torch.stack([z.real, z.imag], 1)
             fb = torch.where(fb > -1, (fb + f0 + 0.5) % 1 - 0.5, fb)
-        noisy = coloured_blind_noise(sig, generator=gen_noise) if args.augment_colour else noise_torch(sig, args.noise_snr, "gaussian_blind")
+        noisy = coloured_blind_noise(sig, generator=gen_noise, snr=args.noise_snr) if args.augment_colour else noise_torch(sig, args.noise_snr, "gaussian_blind")
         if detector:
             logits, offs, cnt_logits = model.forward_all(noisy)
             heat, off_t, mask = detection_targets(fb, model.m)

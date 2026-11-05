@@ -42,6 +42,7 @@ Here it is built in:
 | `sym_stats.py` | Per-signal scores on the test sets and paired bootstrap comparisons between two systems (95% intervals, one-sided p) |
 | `sym_speed.py` | Run time per signal of every system on one CPU at 20 dB → `results/speed.json` |
 | `sym_summary.py` | Tables over seeds (mean ± sd), data efficiency and the symmetry ablation from the `det_*.json` files |
+| `sym_count_pick.py` | Validation pick of the count method (count head or count threshold) for one detector → `results/countpick_<model>.json`, read by `sym_summary.py` |
 | `run_round4.sh` | Round 4 runs: symmetry ablation and the cResFreq / SwinFreq baselines (60k steps), started when round 3's GPU work ends |
 | `run_round5.sh` | Round 5 runs: shift augmentation without built-in symmetry, a colour-trained 60k-step detector and a second seed of the DeepFreq-front-end model, started when round 4's GPU work ends |
 | `models/`, `logs/`, `results/` | Checkpoints, training logs, result files |
@@ -185,6 +186,66 @@ threshold count; row above. Paired bootstrap, seed 0 against seed 0:
 So at 60k steps, as at 20k, the gain comes from the front-end, not from the
 rest of the detector. The other two cells of the 2x2 ablation (phase only,
 shift only) are round 4.
+
+## Data efficiency (10k steps, 3,000 to 100,000 training signals, seed 0)
+
+Ours (`eqdet16x64c`) and the same detector with DeepFreq's front-end
+(`lindet16x64c`), each trained for 10k steps (batch 256, lr 1e-3) on a fixed
+set of 3,000, 10,000, 30,000 or 100,000 training signals on the iMac, one
+seed each (`run_round3.sh`). The count method is picked on validation data
+for each model (`sym_count_pick.py` → `results/countpick_<model>.json`): the
+count threshold for ours at 3k and 10k signals and for every DeepFreq
+front-end model, the count head for ours at 30k and 100k. Per-signal means
+from `sym_stats.py`: count accuracy % / Chamfer (bins) / FNR % (true count
+given). Italic rows are full-budget references: 60k steps on 100,000
+signals.
+
+| System (10k steps unless marked) | -5 dB | 0 dB | 10 dB | 20 dB | 30 dB | 50 dB |
+|---|---|---|---|---|---|---|
+| ours, 3,000 signals (threshold count) | 10.8 / 1.613 / 57.8 | 24.5 / 0.222 / 24.8 | 45.1 / 0.064 / 9.51 | 79.4 / 0.019 / 5.30 | 88.2 / 0.010 / 4.99 | 86.4 / 0.009 / 4.89 |
+| ours, 10,000 signals (threshold count) | 10.8 / 1.783 / 60.1 | 27.2 / 0.203 / 24.1 | 49.6 / 0.055 / 7.28 | 83.8 / 0.015 / 2.94 | 94.3 / 0.006 / 2.24 | 92.0 / 0.004 / 2.12 |
+| ours, 30,000 signals | 10.8 / 1.872 / 58.9 | 30.9 / 0.203 / 23.7 | 57.6 / 0.052 / 6.13 | 87.8 / 0.012 / 0.99 | 97.9 / 0.003 / 0.57 | 96.1 / 0.002 / 0.53 |
+| ours, 100,000 signals | 10.8 / 1.848 / 58.4 | 31.2 / 0.204 / 23.3 | 55.7 / 0.054 / 6.24 | 87.9 / 0.012 / 0.88 | 98.5 / 0.003 / 0.51 | 96.3 / 0.002 / 0.41 |
+| DeepFreq front-end, 3,000 signals | 10.9 / 1.199 / 56.6 | 11.9 / 0.405 / 35.8 | 36.6 / 0.146 / 25.67 | 45.2 / 0.130 / 24.79 | 48.7 / 0.124 / 24.55 | 45.1 / 0.126 / 24.40 |
+| DeepFreq front-end, 10,000 signals | 11.0 / 1.148 / 49.1 | 23.5 / 0.225 / 28.5 | 39.9 / 0.101 / 16.32 | 63.1 / 0.058 / 14.25 | 69.5 / 0.050 / 14.39 | 67.0 / 0.049 / 14.15 |
+| DeepFreq front-end, 30,000 signals | 11.0 / 1.299 / 47.1 | 23.7 / 0.183 / 24.3 | 41.3 / 0.079 / 9.75 | 72.5 / 0.029 / 6.87 | 81.7 / 0.020 / 6.76 | 81.2 / 0.018 / 6.67 |
+| DeepFreq front-end, 100,000 signals | 10.8 / 1.407 / 48.5 | 26.2 / 0.175 / 24.2 | 48.3 / 0.056 / 7.25 | 83.3 / 0.016 / 3.18 | 92.0 / 0.008 / 2.64 | 89.5 / 0.006 / 2.73 |
+| *ours, 60k steps (seed 0)* | 10.8 / 1.621 / 55.5 | 31.3 / 0.192 / 23.2 | 58.4 / 0.052 / 5.65 | 89.5 / 0.012 / 0.51 | 99.6 / 0.003 / 0.08 | 98.6 / 0.001 / 0.05 |
+| *DeepFreq front-end, 60k steps* | 10.8 / 1.415 / 48.3 | 27.8 / 0.172 / 23.4 | 50.1 / 0.055 / 6.93 | 84.2 / 0.015 / 2.05 | 95.8 / 0.005 / 1.55 | 93.4 / 0.004 / 1.51 |
+| *DeepFreq architecture, 60k steps, + pp* | 10.7 / 1.292 / 47.7 | 26.4 / 0.183 / 24.5 | 50.7 / 0.057 / 7.29 | 85.6 / 0.014 / 1.61 | 96.3 / 0.004 / 0.95 | 93.0 / 0.004 / 1.02 |
+| *DeepFreq 2019 FR + pp* | 10.8 / 1.056 / 47.4 | 27.4 / 0.182 / 24.5 | 54.4 / 0.053 / 6.45 | 87.8 / 0.013 / 1.13 | 97.8 / 0.004 / 0.54 | 96.4 / 0.002 / 0.42 |
+
+Paired bootstrap (one-sided p < 0.05), seed 0 against seed 0:
+
+- **Same data, same steps.** At every data size ours counts better and
+  misses fewer frequencies at every SNR from 0 to 50 dB, with lower Chamfer
+  from 0 dB (3k and 10k signals) or 10 dB (30k and 100k). Misses at 20 dB:
+  5.30 against 24.79 % (3k), 2.94 against 14.25 % (10k), 0.99 against
+  6.87 % (30k) and 0.88 against 3.18 % (100k). At -5 dB ours has worse
+  Chamfer at every size and worse FNR from 10k signals.
+- **Ten times less data.** Ours on 3,000 signals beats the DeepFreq
+  front-end on 30,000 on all three metrics from 20 dB (Chamfer from 10 dB,
+  FNR from 15 dB; Chamfer worse at -5 to 5 dB). Ours on 10,000 signals is
+  level with the DeepFreq front-end on 100,000 at 10-20 dB and better from
+  25 dB (count from 30 dB); below 10 dB its Chamfer is worse.
+- **Ours stops gaining early.** From 30,000 to 100,000 signals ours barely
+  changes (0.99 → 0.88 % misses at 20 dB), while the DeepFreq front-end
+  still halves its misses (6.87 → 3.18 %).
+- **Against DeepFreq at its full budget.** Ours with 10k steps on 30,000
+  signals (1/6 of the steps, 30 % of the data) beats DeepFreq's
+  architecture trained for 60k steps on 100,000 signals on count and FNR at
+  every SNR from 0 to 50 dB and on Chamfer from 10 dB. Against the released
+  DeepFreq 2019 models it is level or better on all three from 10 dB (count
+  better at 0-15 dB, Chamfer worse at -5 to 5 dB). With 10,000 signals it
+  falls short: count worse at 15-30 dB and FNR worse from 15 dB (2.94
+  against 1.61 % at 20 dB).
+
+So the symmetric front-end needs about ten times less training data than
+DeepFreq's front-end in the same detector, and reaches DeepFreq's
+full-budget accuracy with 1/6 of the steps and 30 % of the data, but not
+with 10 % of the data. One seed only: the bootstrap covers test noise, not
+training seeds. A 6k-step run of ours (10 % of the steps) on 100,000
+signals is next (`eqdet16x64c_6k_s0`, cloud CPU).
 
 ## Training noise down to -5 dB (fine-tune, both systems)
 

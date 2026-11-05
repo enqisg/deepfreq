@@ -29,8 +29,11 @@ beats NOMP (told the noise level), atomic-norm denoising and VALSE on count
 accuracy and Chamfer distance at 0-50 dB. A count head on the same backbone
 makes it count better than DeepFreq at every SNR from 0 to 50 dB, and with
 the training noise range extended to -5 dB for both, ours counts better and
-misses fewer frequencies at every SNR from -5 to 50 dB (3 seeds). TODO:
-data efficiency, augmentation control, real data.
+misses fewer frequencies at every SNR from -5 to 50 dB (3 seeds). With the
+same training steps, the symmetric front-end needs about ten times less
+training data than DeepFreq's front-end in the same detector, and with 1/6
+of the steps and 30 % of the data it beats DeepFreq's architecture trained
+at full budget (1 seed, prov.). TODO: augmentation control, real data.
 
 ## 1 Introduction
 
@@ -282,8 +285,18 @@ fine-tune does not change this.
   from the front-end, not from the backbone, heads or post-processing.
 - TODO round 4: the other two cells of the 2x2 ablation (phase only, shift
   only), 60k steps (`sym_summary.py ablation`).
-- TODO round 3: data efficiency, 3k to 100k training signals
-  (`sym_summary.py data`).
+- Round 3, data efficiency (10k steps on 3k to 100k training signals,
+  seed 0): with the same data and steps, ours counts better and misses
+  fewer frequencies than the DeepFreq-front-end detector at every SNR from
+  0 to 50 dB, at all four sizes (misses at 20 dB: 5.30 / 2.94 / 0.99 /
+  0.88 % against 24.79 / 14.25 / 6.87 / 3.18 %). Ours on 3k signals beats
+  the other on 30k on all three metrics from 20 dB, and ours on 10k is level
+  with the other on 100k at 10-20 dB and better above: about ten times less
+  data. Ours with 1/6 of DeepFreq's steps and 30 % of its data beats
+  DeepFreq's architecture at its full budget (60k steps, 100k signals) on
+  count and misses at every SNR from 0 dB; with 10 % of the data it does
+  not (FNR 2.94 against 1.61 % at 20 dB). TODO: 10 % of the steps
+  (`eqdet16x64c_6k_s0`), more seeds.
 - TODO round 5: is augmentation enough? DeepFreq's front-end with random
   frequency shifts on every training signal.
 

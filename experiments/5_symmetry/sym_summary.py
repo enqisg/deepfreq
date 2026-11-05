@@ -12,7 +12,9 @@
 
 Each cell is FNR % with the true count / count accuracy % / Chamfer (bins),
 after the clean-up and likelihood check.  For models with a count head the
-count head's count is used; --both adds rows with the threshold count.
+count method (head or threshold) picked on validation data is used
+(results/countpick_<stem>.json from sym_count_pick.py; the head if there is
+no such file); --both adds rows with the threshold count.
 Missing files are shown as "-".
 """
 import json
@@ -30,13 +32,28 @@ ABLATION = [("neither (DeepFreq's front-end)", "lindet16x64c_60k"), ("phase only
 
 def load(stem):
     p = RES / f"det_{stem}.json"
-    return json.load(open(p)) if p.exists() else None
+    if not p.exists():
+        return None
+    d = json.load(open(p))
+    d["_stem"] = stem
+    return d
 
 
-def metrics(d, snr, head=True):
+def use_head(stem):
+    """Validation pick: count head (True) or count threshold (False)."""
+    p = RES / f"countpick_{stem}.json"
+    if not p.exists():
+        return True
+    v = json.load(open(p)).values()
+    return np.mean([r["head"] for r in v]) > np.mean([r["threshold"] for r in v])
+
+
+def metrics(d, snr, head=None):
     r = d["snr"].get(snr)
     if r is None:
         return None
+    if head is None:
+        head = use_head(d.get("_stem", ""))
     if head and "count_acc_head_hybrid" in r:
         return r["fnr_oracle_refined"], r["count_acc_head_hybrid"], r["chamfer_head_hybrid"]
     if "count_acc_hybrid" in r:
@@ -48,7 +65,7 @@ def seeds(prefix):
     return [d for d in (load(f"{prefix}_s{k}") for k in range(10)) if d is not None]
 
 
-def cell(runs, snr, head=True):
+def cell(runs, snr, head=None):
     vals = [m for m in (metrics(d, snr, head) for d in runs) if m is not None]
     if not vals:
         return "-"
@@ -63,7 +80,7 @@ def table(rows):
     print("| System | runs | " + " | ".join(f"{s} dB" for s in SNRS) + " |")
     print("|---" * (len(SNRS) + 2) + "|")
     for row in rows:
-        label, runs, head = row if len(row) == 3 else (*row, True)
+        label, runs, head = row if len(row) == 3 else (*row, None)
         print(f"| {label} | {len(runs)} | " + " | ".join(cell(runs, s, head) for s in SNRS) + " |")
 
 

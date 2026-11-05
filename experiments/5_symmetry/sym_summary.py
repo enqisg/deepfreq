@@ -71,8 +71,8 @@ HARD_SETS = ["superres05", "superres025", "widerange", "colored", "impulsive"]
 HARD_FR = [("DeepFreq 2019 FR model + our post-processing", "fr_deepfreq2019"),
            ("DeepFreq architecture, 60k steps + our post-processing", "fr_deepfreq20x64_60k"),
            ("DeepFreq architecture, 60k + wide fine-tune + our post-processing", "fr_deepfreq20x64_60k_wide3k_s0"),
-           ("DeepFreq architecture, 60k + colour and wide fine-tune + our post-processing",
-            "fr_deepfreq20x64_60k_widecol3k_s0")]
+           *[(f"DeepFreq architecture, 60k + colour and wide fine-tune (seed {i}) + our post-processing",
+              f"fr_deepfreq20x64_60k_widecol3k_s{i}") for i in range(3)]]
 
 
 def hard_rows(stems):

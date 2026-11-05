@@ -1,0 +1,54 @@
+{
+ "fnr_threshold_bins": 0.25,
+ "model": "deepfreq20x64_60k_widecol3k_s1",
+ "snr": {
+  "0": {
+   "deepfreq20x64_60k_widecol3k_s1 FR model + same post-processing": {
+    "fnr_oracle": 39.844325396825354,
+    "count_acc": 23.400000000000002,
+    "chamfer": 0.152571956141408,
+    "median_err": 0.29539335519075394
+   }
+  },
+  "10": {
+   "deepfreq20x64_60k_widecol3k_s1 FR model + same post-processing": {
+    "fnr_oracle": 20.93222222222223,
+    "count_acc": 40.5,
+    "chamfer": 0.05934095914860518,
+    "median_err": 0.09960820898413658
+   }
+  },
+  "20": {
+   "deepfreq20x64_60k_widecol3k_s1 FR model + same post-processing": {
+    "fnr_oracle": 13.168095238095257,
+    "count_acc": 59.8,
+    "chamfer": 0.02577099565085066,
+    "median_err": 0.04132545604000892
+   }
+  },
+  "30": {
+   "deepfreq20x64_60k_widecol3k_s1 FR model + same post-processing": {
+    "fnr_oracle": 12.275000000000015,
+    "count_acc": 74.7,
+    "chamfer": 0.02150098203629829,
+    "median_err": 0.020404714271826663
+   }
+  },
+  "40": {
+   "deepfreq20x64_60k_widecol3k_s1 FR model + same post-processing": {
+    "fnr_oracle": 11.581944444444456,
+    "count_acc": 69.0,
+    "chamfer": 0.023748727764889083,
+    "median_err": 0.012162754955001576
+   }
+  },
+  "50": {
+   "deepfreq20x64_60k_widecol3k_s1 FR model + same post-processing": {
+    "fnr_oracle": 11.611468253968265,
+    "count_acc": 60.3,
+    "chamfer": 0.0271758859120143,
+    "median_err": 0.010479332428667276
+   }
+  }
+ }
+}

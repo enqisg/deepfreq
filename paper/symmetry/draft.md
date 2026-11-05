@@ -19,8 +19,8 @@ convolutions along frequency and a detection head that predicts, per bin,
 whether a frequency is present and its sub-bin offset then let one network
 both locate and count the sinusoids, replacing DeepFreq's two networks. A
 short least-squares refinement and a penalised-likelihood check finish the
-estimate. With everything else fixed, the symmetric front-end misses 4-10x
-fewer frequencies at 20-30 dB than DeepFreq's front-end while using 5x fewer
+estimate. With everything else fixed, the symmetric front-end misses 4-13x
+fewer frequencies at 20-30 dB than DeepFreq's front-end, with a third of the
 parameters. The full detector (2.5x smaller than DeepFreq's FR model) comes
 within 15 % of the Cramér-Rao bound from 10 dB. Against DeepFreq 2019 given
 the same post-processing, it has significantly lower Chamfer distance and
@@ -29,7 +29,7 @@ beats NOMP (told the noise level), atomic-norm denoising and VALSE on count
 accuracy and Chamfer distance at 0-50 dB. A count head on the same backbone
 makes it count better than DeepFreq at every SNR from 0 to 50 dB, and with
 the training noise range extended to -5 dB for both, ours counts better and
-misses fewer frequencies at every SNR from -5 to 50 dB. TODO: third seed,
+misses fewer frequencies at every SNR from -5 to 50 dB (3 seeds). TODO:
 data efficiency, augmentation control, real data.
 
 ## 1 Introduction
@@ -207,25 +207,28 @@ check parameters, using its spectrum peaks in place of our heatmap.
 
 ## 6 Results
 
-### 6.1 Main comparison (60k steps, seeds 0 and 1; seed 2 TODO)
+### 6.1 Main comparison (60k steps, 3 seeds)
 
 Count accuracy % / Chamfer (bins) / FNR %, test sets, both systems trained
 on DeepFreq's noise range (SNR >= 0 dB):
 
 | Method | -5 dB | 0 dB | 10 dB | 20 dB | 30 dB | 50 dB |
 |---|---|---|---|---|---|---|
-| Ours, count head (2 seeds) | 10.8 / 1.65 / 55.1 | 32.5 / 0.187 / 23.2 | 58.7 / 0.051 / 5.64 | 89.2 / 0.012 / 0.51 | 99.7 / 0.003 / 0.11 | 98.7 / 0.001 / 0.08 |
+| Ours, count head (mean of 3 seeds) | 10.8 / 1.66 / 54.7 | 32.5 / 0.187 / 23.2 | 59.0 / 0.051 / 5.65 | 89.2 / 0.012 / 0.53 | 99.6 / 0.003 / 0.12 | 98.5 / 0.001 / 0.08 |
 | DeepFreq 2019 FR + our post-processing | 10.8 / 1.06 / 47.4 | 27.4 / 0.182 / 24.5 | 54.4 / 0.053 / 6.45 | 87.8 / 0.013 / 1.13 | 97.8 / 0.004 / 0.54 | 96.4 / 0.002 / 0.42 |
 | NOMP (true noise level) | 10.8 / 0.63 / 48.1 | 17.0 / 0.274 / 31.0 | 45.1 / 0.056 / 8.64 | 87.0 / 0.014 / 0.88 | 98.1 / 0.005 / 0.13 | 93.6 / 0.004 / 0.10 |
 | Atomic norm denoising | 10.2 / 0.65 / 46.6 | 14.3 / 0.395 / 30.3 | 40.1 / 0.065 / 8.66 | 85.8 / 0.013 / 1.26 | 94.2 / 0.005 / 0.65 | 84.1 / 0.012 / 1.35 |
 | VALSE | 12.8 / 0.72 / 47.8 | 19.7 / 0.357 / 31.0 | 49.9 / 0.067 / 8.40 | 82.4 / 0.014 / 1.65 | 87.6 / 0.006 / 2.00 | 50.7 / 0.011 / 4.21 |
 
-Paired bootstrap, both seeds (one-sided $p < 0.05$): against DeepFreq 2019
+Seed spread (sd over 3 seeds) is at most 0.9 count points (0 dB) and 0.03
+FNR points from 0 dB. Paired bootstrap, each seed (one-sided $p < 0.05$):
+against DeepFreq 2019
 with our post-processing, ours counts better at every SNR from 0 to 50 dB
 and misses fewer frequencies from 0 to 50 dB; Chamfer is better from 10-15
 dB and level or slightly worse at 0-5 dB. Against NOMP (told the noise
 level), atomic norm denoising and VALSE: better count and Chamfer from 0 to
-50 dB. Below the training range, at -5 dB, ours is worse on FNR and Chamfer.
+50 dB (one exception: seed 2's count against NOMP at 25 dB, $p = 0.051$).
+Below the training range, at -5 dB, ours is worse on FNR and Chamfer.
 
 ### 6.1b Extending the training noise range to -5 dB
 
@@ -234,38 +237,51 @@ fine-tuned identically (3000 steps, noise down to -5 dB). Ours: -5 dB FNR
 55 -> 40 %, 0-50 dB about unchanged. DeepFreq's architecture: 47.7 -> 42.8 %
 at -5 dB, but worse at 30-50 dB (FNR 0.95 -> 1.17 % at 30 dB). After the
 fine-tune, ours counts better and misses fewer frequencies than the
-DeepFreq architecture at **every SNR from -5 to 50 dB** (both seeds), with
+DeepFreq architecture at **every SNR from -5 to 50 dB** (all 3 seeds), with
 Chamfer better from 10 dB, level at 0-5 dB, worse at -5 dB (0.44 vs 0.40).
 TODO: decide whether the main table uses the extended range for all
 systems (fairer to report both).
 
-### 6.1c One model for white and coloured noise from -5 dB (seed 0; seed 1 TODO)
+### 6.1c One model for white and coloured noise from -5 dB (3 seeds)
 
-The same fine-tune with random AR(1) noise colours added (both systems):
-ours against DeepFreq's architecture is better on count and FNR at every SNR
-from -5 to 50 dB ($p<0.001$; e.g. 10 dB: 56.4 against 47.7 % count, 6.0
-against 8.0 % misses), better on Chamfer from 10 dB. It also beats NOMP,
+The same fine-tune with random AR(1) noise colours added (both systems, 3
+seeds each, each seed paired with the run of the same seed): ours against
+DeepFreq's architecture is better on count and FNR at every SNR from -5 to
+50 dB for all three pairs ($p \le 0.003$; 3-seed means at 10 dB: 56.4
+against 47.7 % count, 5.97 against 8.04 % misses; at 30 dB: 99.4 against
+95.5 %, 0.12 against 1.12 %), better on Chamfer from 10 dB. Seeds agree
+within 0.8 count points for both systems. It also beats NOMP,
 ANM and VALSE at -5 dB on all three metrics. The colour training costs at
 most 4 count points against our white-only fine-tune (15 dB).
 
-### 6.2 Accuracy against the Cramér-Rao bound (prov.)
+### 6.2 Accuracy against the Cramér-Rao bound
 
-Median absolute error with the true count, bins:
+Median absolute error with the true count after the clean-up, bins
+(`median_err_oracle_refined` in `det_<model>.json`; the bound from
+`sym_nomp_crb.json`):
 
 | SNR | 10 dB | 20 dB | 30 dB | 50 dB |
 |---|---|---|---|---|
 | CRB (median abs. error) | 0.0512 | 0.0162 | 0.0051 | 0.00051 |
-| Ours | 0.0521 | 0.0162 | 0.0049 | 0.00058 |
+| Ours, 60k steps (3 seeds) | 0.0523 | 0.0161 | 0.0049 | 0.00057 |
+| Ours, colour + wide fine-tune (3 seeds) | 0.0525 | 0.0160 | 0.0049 | 0.00057 |
 
-Ours is within 2 % of the bound at 10-30 dB and 14 % at 50 dB.
+Ours is within 3 % of the bound at 10-30 dB and 11 % at 50 dB, and the
+fine-tune does not change this.
 
 ### 6.3 What the symmetries buy
 
 - Round 2 (prov.): same backbone, head and loss, only the front-end changed:
   4x fewer misses at 20 dB (0.66 vs 2.71 %) and 10x fewer at 30 dB (0.23 vs
   2.35 %) with 5x fewer parameters.
-- TODO round 4: 2x2 ablation (neither, phase only, shift only, both), 60k
-  steps (`sym_summary.py ablation`).
+- Round 3, 60k steps, seed 0: the same detector with DeepFreq's front-end
+  (1.22M parameters against 0.42M) misses 2.05 % of frequencies at 20 dB
+  and 1.55 % at 30 dB, against 0.53 and 0.12 % for ours (3 seeds), and
+  counts worse from 0 dB (84.2 against 89.2 % at 20 dB). It is only level
+  with DeepFreq's own architecture trained the same way, so the gain comes
+  from the front-end, not from the backbone, heads or post-processing.
+- TODO round 4: the other two cells of the 2x2 ablation (phase only, shift
+  only), 60k steps (`sym_summary.py ablation`).
 - TODO round 3: data efficiency, 3k to 100k training signals
   (`sym_summary.py data`).
 - TODO round 5: is augmentation enough? DeepFreq's front-end with random
@@ -282,18 +298,19 @@ FNR and Chamfer at 0-50 dB.
 ### 6.5 Robustness
 
 Five harder sets (count accuracy % / Chamfer in bins, mean over 0-50 dB;
-seed 0). Bold: both systems after the same colour and wide-noise fine-tune;
-the other networks saw white noise only.
+seed 0 unless marked). Bold: both systems after the same colour and
+wide-noise fine-tune, mean of 3 seeds (each seed within 0.8 count points of
+the mean); the other networks saw white noise only.
 
 | System | 0.5 bins apart | 0.25 bins apart | 30 dB amplitude range | coloured (AR(1), 0.8) | spikes |
 |---|---|---|---|---|---|
 | ours, 60k | 59.5 / 0.054 | 48.2 / 0.056 | 74.1 / 0.057 | 58.9 / 0.304 | 38.2 / 0.213 |
 | ours, 60k + wide fine-tune | 59.4 / 0.049 | 47.8 / 0.050 | 73.4 / 0.062 | 59.5 / 0.293 | 41.2 / 0.119 |
-| **ours, 60k + colour and wide fine-tune** | 58.7 / 0.052 | 47.4 / 0.053 | 72.0 / 0.071 | 73.1 / 0.057 | 40.2 / 0.131 |
+| **ours, 60k + colour and wide fine-tune (3 seeds)** | 58.5 / 0.052 | 47.6 / 0.053 | 72.1 / 0.070 | 72.8 / 0.058 | 40.3 / 0.129 |
 | DeepFreq 2019 FR model + our post-processing | 56.0 / 0.053 | 46.4 / 0.054 | 69.5 / 0.062 | 62.5 / 0.205 | 36.6 / 0.131 |
 | DeepFreq architecture, 60k + our post-processing | 55.9 / 0.053 | 45.8 / 0.054 | 65.5 / 0.066 | 64.4 / 0.171 | 36.1 / 0.133 |
 | DeepFreq architecture, 60k + wide fine-tune + our post-processing | 55.3 / 0.050 | 45.8 / 0.052 | 64.0 / 0.068 | 63.7 / 0.164 | 36.2 / 0.119 |
-| **DeepFreq architecture, 60k + colour and wide fine-tune + our post-processing** | 55.2 / 0.052 | 45.1 / 0.053 | 63.5 / 0.072 | 66.7 / 0.114 | 35.1 / 0.131 |
+| **DeepFreq architecture, 60k + colour and wide fine-tune + our post-processing (3 seeds)** | 55.1 / 0.052 | 44.8 / 0.053 | 63.8 / 0.073 | 66.8 / 0.115 | 34.9 / 0.131 |
 | DeepFreq 2019 (FR + FC models, as released) | 40.5 / 0.072 | 34.4 / 0.070 | 48.8 / 0.081 | 44.5 / 0.235 | 30.7 / 0.144 |
 | NOMP (true noise power) | 53.1 / 0.062 | 44.1 / 0.060 | 69.0 / 0.077 | 21.8 / 0.269 | 10.8 / 1.010 |
 | VALSE + clean-up | 47.9 / 0.082 | 40.6 / 0.082 | 55.0 / 0.095 | 41.2 / 0.330 | 28.8 / 0.172 |
@@ -301,8 +318,9 @@ Trained on white noise only, our detector is best on close frequencies and
 on a 30 dB amplitude range but weak on coloured noise at 10-20 dB. After a
 3000-step fine-tune with random noise colours and noise down to -5 dB,
 given to both systems, ours beats DeepFreq's architecture on count and
-misses on all five sets (coloured: 73.1 against 66.7 %, Chamfer 0.057
-against 0.114) and is level or better on Chamfer.
+misses on all five sets for each of three seed pairs (coloured: 72.8
+against 66.8 %, Chamfer 0.058 against 0.115) and is level or better on
+Chamfer.
 
 ### 6.6 Real data
 

@@ -11,6 +11,8 @@ which A is not better (a one-sided p-value).
 Systems (each uses the settings picked on validation data, stored in its
 results json):
     det:<checkpoint>:<model>   a detector, final system (clean-up + likelihood check)
+    dethead:<checkpoint>:<model>  the same, but the count comes from the count head
+                               (saved as persig_<checkpoint stem>_head.npz)
     fr:<name>                  an FR baseline as in sym_eval_fr.py (results/fr_<name>.json)
     nomp                       NOMP, CFAR stop with the true noise level, 100-step refinement
     anm                        atomic norm denoising, from the estimates sym_anm.py saved
@@ -121,11 +123,14 @@ def run(spec):
             print(name, snr, {k: round(float(np.nanmean(v)), 4) for k, v in out[snr].items()}, flush=True)
     else:
         kind, rest = spec.split(":", 1)
-        name, model, cfg = run_detector(*rest.rsplit(":", 1)) if kind == "det" else run_fr(rest)
+        name, model, cfg = run_detector(*rest.rsplit(":", 1)) if kind in ("det", "dethead") else run_fr(rest)
+        if kind == "dethead":
+            name += "_head"
         for snr in E.SNRS:
             sig, tgt, cnt = load_test_set(snr)
             lo, of = E.raw_outputs(model, sig)
-            efr = E.refine(sig, decode(lo, of, None, cfg["threshold"]))
+            k_own = E.head_counts(model, sig) if kind == "dethead" else None
+            efr = E.refine(sig, decode(lo, of, k_own, cfg["threshold"]))
             efh = E.hybrid(sig, efr, cfg["hybrid_mult"], cfg["hybrid_gate_db"],
                            decode(lo, of, None, cfg["hybrid_proposal_threshold"]))
             out[snr] = _scores(efh, E.refine(sig, decode(lo, of, cnt)), tgt, cnt)

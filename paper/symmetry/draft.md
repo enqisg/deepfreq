@@ -26,8 +26,11 @@ within 15 % of the Cramér-Rao bound from 10 dB. Against DeepFreq 2019 given
 the same post-processing, it has significantly lower Chamfer distance and
 fewer missed frequencies from 0 dB and better counts from 15 dB; it also
 beats NOMP (told the noise level), atomic-norm denoising and VALSE on count
-accuracy and Chamfer distance at 0-50 dB. TODO: 3 seeds, count head at low
-SNR, data efficiency, augmentation control, real data.
+accuracy and Chamfer distance at 0-50 dB. A count head on the same backbone
+makes it count better than DeepFreq at every SNR from 0 to 50 dB, and with
+the training noise range extended to -5 dB for both, ours counts better and
+misses fewer frequencies at every SNR from -5 to 50 dB. TODO: third seed,
+data efficiency, augmentation control, real data.
 
 ## 1 Introduction
 
@@ -204,29 +207,37 @@ check parameters, using its spectrum peaks in place of our heatmap.
 
 ## 6 Results
 
-### 6.1 Main comparison (prov., 1 seed, 20k steps)
+### 6.1 Main comparison (60k steps, seeds 0 and 1; seed 2 TODO)
 
-Count accuracy % / Chamfer (bins) / FNR %, test sets:
+Count accuracy % / Chamfer (bins) / FNR %, test sets, both systems trained
+on DeepFreq's noise range (SNR >= 0 dB):
 
-| Method | 0 dB | 10 dB | 20 dB | 30 dB | 50 dB |
-|---|---|---|---|---|---|
-| Ours (0.40M) | 27.4 / 0.173 / 22.5 | 53.3 / 0.049 / 5.71 | 88.8 / 0.0118 / 0.64 | 99.2 / 0.0031 / 0.14 | 97.9 / 0.0013 / 0.12 |
-| VALSE | 19.7 / 0.357 / 30.5 | 49.9 / 0.067 / 8.24 | 82.4 / 0.0145 / 1.65 | 87.6 / 0.0060 / 1.98 | 50.7 / 0.0112 / 4.10 |
+| Method | -5 dB | 0 dB | 10 dB | 20 dB | 30 dB | 50 dB |
+|---|---|---|---|---|---|---|
+| Ours, count head (2 seeds) | 10.8 / 1.65 / 55.1 | 32.5 / 0.187 / 23.2 | 58.7 / 0.051 / 5.64 | 89.2 / 0.012 / 0.51 | 99.7 / 0.003 / 0.11 | 98.7 / 0.001 / 0.08 |
+| DeepFreq 2019 FR + our post-processing | 10.8 / 1.06 / 47.4 | 27.4 / 0.182 / 24.5 | 54.4 / 0.053 / 6.45 | 87.8 / 0.013 / 1.13 | 97.8 / 0.004 / 0.54 | 96.4 / 0.002 / 0.42 |
+| NOMP (true noise level) | 10.8 / 0.63 / 48.1 | 17.0 / 0.274 / 31.0 | 45.1 / 0.056 / 8.64 | 87.0 / 0.014 / 0.88 | 98.1 / 0.005 / 0.13 | 93.6 / 0.004 / 0.10 |
+| Atomic norm denoising | 10.2 / 0.65 / 46.6 | 14.3 / 0.395 / 30.3 | 40.1 / 0.065 / 8.66 | 85.8 / 0.013 / 1.26 | 94.2 / 0.005 / 0.65 | 84.1 / 0.012 / 1.35 |
+| VALSE | 12.8 / 0.72 / 47.8 | 19.7 / 0.357 / 31.0 | 49.9 / 0.067 / 8.40 | 82.4 / 0.014 / 1.65 | 87.6 / 0.006 / 2.00 | 50.7 / 0.011 / 4.21 |
 
-TODO: fill all rows from `sym_stats.py` once rounds 3-4 finish (DeepFreq
-2019 with and without our post-processing, E6, cResFreq, SwinFreq, NOMP, ANM).
+Paired bootstrap, both seeds (one-sided $p < 0.05$): against DeepFreq 2019
+with our post-processing, ours counts better at every SNR from 0 to 50 dB
+and misses fewer frequencies from 0 to 50 dB; Chamfer is better from 10-15
+dB and level or slightly worse at 0-5 dB. Against NOMP (told the noise
+level), atomic norm denoising and VALSE: better count and Chamfer from 0 to
+50 dB. Below the training range, at -5 dB, ours is worse on FNR and Chamfer.
 
-Paired bootstrap, ours against each baseline (one-sided $p < 0.05$), prov.:
+### 6.1b Extending the training noise range to -5 dB
 
-| Baseline | count accuracy | Chamfer | FNR |
-|---|---|---|---|
-| DeepFreq 2019 FR + our post-processing | better 15-50 dB, level -5 to 10 | better 0-50, worse -5 | better 0-50, level -5 |
-| NOMP (true noise level) | better 0-50, level -5 | better 0-50, worse -5 | better 0-20, level -5 and 25-50 |
-| Atomic norm denoising | better 0-50, level -5 | better 0-50, worse -5 | better 0-50, worse -5 |
-| VALSE | better 0-50, level -5 | better 0-50, worse -5 | better 0-50, level -5 |
-
-The weak spots are -5 dB (outside the training SNR range) and counting at
-0-10 dB, which the count head in round 3 targets.
+Ours and the DeepFreq architecture (our 60k run on the same data) are
+fine-tuned identically (3000 steps, noise down to -5 dB). Ours: -5 dB FNR
+55 -> 40 %, 0-50 dB about unchanged. DeepFreq's architecture: 47.7 -> 42.8 %
+at -5 dB, but worse at 30-50 dB (FNR 0.95 -> 1.17 % at 30 dB). After the
+fine-tune, ours counts better and misses fewer frequencies than the
+DeepFreq architecture at **every SNR from -5 to 50 dB** (both seeds), with
+Chamfer better from 10 dB, level at 0-5 dB, worse at -5 dB (0.44 vs 0.40).
+TODO: decide whether the main table uses the extended range for all
+systems (fairer to report both).
 
 ### 6.2 Accuracy against the Cramér-Rao bound (prov.)
 

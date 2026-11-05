@@ -8,7 +8,8 @@ Same training signals, noise model and optimiser as E3, with two additions:
 
 Usage (from the repository root):
   python experiments/5_symmetry/sym_train.py MODEL [--steps 4000] [--seed 0] [--ntrain 100000]
-                                  [--augment-shift] [--augment-colour] [--tag _x] [--device auto]
+                                 [--augment-shift] [--augment-colour] [--noise-snr 1.0] [--init CKPT]
+                                 [--tag _x] [--device auto]
 MODEL is any key of sym_models.FR_MODELS (trained with DeepFreq's loss) or
 sym_models.DETECTORS (trained with the detection loss).
 """
@@ -183,6 +184,9 @@ def main():
                     help="multiply each training signal by a random tone (frequency-shift augmentation)")
     ap.add_argument("--augment-colour", action="store_true",
                     help="half the training signals get AR(1) noise of random strength and centre frequency")
+    ap.add_argument("--noise-snr", type=float, default=1.0,
+                    help="noise_torch snr parameter: noise std uniform up to 1/sqrt(this) of the signal (1.0: SNR >= 0 dB)")
+    ap.add_argument("--init", default=None, help="start from this checkpoint (fine-tuning)")
     ap.add_argument("--tag", default="")
     ap.add_argument("--device", default="auto")
     ap.add_argument("--threads", type=int, default=4)
@@ -195,6 +199,8 @@ def main():
     detector = args.model in DETECTORS
     torch.manual_seed(args.seed)
     model = (DETECTORS if detector else FR_MODELS)[args.model]().to(device)
+    if args.init:
+        model.load_state_dict(torch.load(args.init, map_location=device))
     n_params = sum(p.numel() for p in model.parameters())
 
     s, f = training_set()
@@ -221,7 +227,7 @@ def main():
             z = torch.complex(sig[:, 0], sig[:, 1]) * rot
             sig = torch.stack([z.real, z.imag], 1)
             fb = torch.where(fb > -1, (fb + f0 + 0.5) % 1 - 0.5, fb)
-        noisy = coloured_blind_noise(sig, generator=gen_noise) if args.augment_colour else noise_torch(sig, 1.0, "gaussian_blind")
+        noisy = coloured_blind_noise(sig, generator=gen_noise) if args.augment_colour else noise_torch(sig, args.noise_snr, "gaussian_blind")
         if detector:
             logits, offs, cnt_logits = model.forward_all(noisy)
             heat, off_t, mask = detection_targets(fb, model.m)

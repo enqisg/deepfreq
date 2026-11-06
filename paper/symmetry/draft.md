@@ -32,8 +32,9 @@ the training noise range extended to -5 dB for both, ours counts better and
 misses fewer frequencies at every SNR from -5 to 50 dB (3 seeds). With the
 same training steps, the symmetric front-end needs about ten times less
 training data than DeepFreq's front-end in the same detector, and with 1/6
-of the steps and 30 % of the data it beats DeepFreq's architecture trained
-at full budget (1 seed, prov.). TODO: augmentation control, real data.
+of the steps and 30 % of the data, or with 10 % of the steps, it beats
+DeepFreq's architecture trained at full budget from 5-10 dB up (1 seed,
+prov.). TODO: augmentation control, real data.
 
 ## 1 Introduction
 
@@ -295,8 +296,13 @@ fine-tune does not change this.
   data. Ours with 1/6 of DeepFreq's steps and 30 % of its data beats
   DeepFreq's architecture at its full budget (60k steps, 100k signals) on
   count and misses at every SNR from 0 dB; with 10 % of the data it does
-  not (FNR 2.94 against 1.61 % at 20 dB). TODO: 10 % of the steps
-  (`eqdet16x64c_6k_s0`), more seeds.
+  not (FNR 2.94 against 1.61 % at 20 dB). With 10 % of the steps (6k) on
+  all 100k signals, ours beats DeepFreq's architecture at its full budget
+  on count and misses at every SNR from 0 dB and on Chamfer from 10 dB
+  (misses at 20 dB 1.09 against 1.61 %), and is level or better than the
+  released DeepFreq 2019 models on all three from 5 dB. Chamfer is worse
+  at -5 and 0 dB (training noise only down to 0 dB, see §6.1b). TODO: more
+  seeds.
 - TODO round 5: is augmentation enough? DeepFreq's front-end with random
   frequency shifts on every training signal.
 

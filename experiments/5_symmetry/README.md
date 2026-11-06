@@ -187,7 +187,7 @@ So at 60k steps, as at 20k, the gain comes from the front-end, not from the
 rest of the detector. The other two cells of the 2x2 ablation (phase only,
 shift only) are round 4.
 
-## Data efficiency (10k steps, 3,000 to 100,000 training signals, seed 0)
+## Data efficiency (10k steps, 3,000 to 100,000 training signals, seed 0; and 6k steps)
 
 Ours (`eqdet16x64c`) and the same detector with DeepFreq's front-end
 (`lindet16x64c`), each trained for 10k steps (batch 256, lr 1e-3) on a fixed
@@ -198,7 +198,12 @@ count threshold for ours at 3k and 10k signals and for every DeepFreq
 front-end model, the count head for ours at 30k and 100k. Per-signal means
 from `sym_stats.py`: count accuracy % / Chamfer (bins) / FNR % (true count
 given). Italic rows are full-budget references: 60k steps on 100,000
-signals.
+signals. The 6k-step row (10 % of DeepFreq's steps, 100,000 signals) was
+trained on the cloud CPU (`sym_train.py eqdet16x64c --steps 6000 --ntrain
+100000 --tag _6k`, about 1.4 h, then `sym_eval_detector.py`, `sym_stats.py`
+and `sym_count_pick.py` as for the other rows); the count head
+and the count threshold tie on validation (75.1 against 75.0 %), and the
+head is used.
 
 | System (10k steps unless marked) | -5 dB | 0 dB | 10 dB | 20 dB | 30 dB | 50 dB |
 |---|---|---|---|---|---|---|
@@ -206,6 +211,7 @@ signals.
 | ours, 10,000 signals (threshold count) | 10.8 / 1.783 / 60.1 | 27.2 / 0.203 / 24.1 | 49.6 / 0.055 / 7.28 | 83.8 / 0.015 / 2.94 | 94.3 / 0.006 / 2.24 | 92.0 / 0.004 / 2.12 |
 | ours, 30,000 signals | 10.8 / 1.872 / 58.9 | 30.9 / 0.203 / 23.7 | 57.6 / 0.052 / 6.13 | 87.8 / 0.012 / 0.99 | 97.9 / 0.003 / 0.57 | 96.1 / 0.002 / 0.53 |
 | ours, 100,000 signals | 10.8 / 1.848 / 58.4 | 31.2 / 0.204 / 23.3 | 55.7 / 0.054 / 6.24 | 87.9 / 0.012 / 0.88 | 98.5 / 0.003 / 0.51 | 96.3 / 0.002 / 0.41 |
+| ours, 100,000 signals, **6k steps** | 10.8 / 1.924 / 63.4 | 30.7 / 0.205 / 23.6 | 55.8 / 0.055 / 6.51 | 88.1 / 0.012 / 1.09 | 98.6 / 0.003 / 0.53 | 96.6 / 0.002 / 0.50 |
 | DeepFreq front-end, 3,000 signals | 10.9 / 1.199 / 56.6 | 11.9 / 0.405 / 35.8 | 36.6 / 0.146 / 25.67 | 45.2 / 0.130 / 24.79 | 48.7 / 0.124 / 24.55 | 45.1 / 0.126 / 24.40 |
 | DeepFreq front-end, 10,000 signals | 11.0 / 1.148 / 49.1 | 23.5 / 0.225 / 28.5 | 39.9 / 0.101 / 16.32 | 63.1 / 0.058 / 14.25 | 69.5 / 0.050 / 14.39 | 67.0 / 0.049 / 14.15 |
 | DeepFreq front-end, 30,000 signals | 11.0 / 1.299 / 47.1 | 23.7 / 0.183 / 24.3 | 41.3 / 0.079 / 9.75 | 72.5 / 0.029 / 6.87 | 81.7 / 0.020 / 6.76 | 81.2 / 0.018 / 6.67 |
@@ -239,13 +245,23 @@ Paired bootstrap (one-sided p < 0.05), seed 0 against seed 0:
   better at 0-15 dB, Chamfer worse at -5 to 5 dB). With 10,000 signals it
   falls short: count worse at 15-30 dB and FNR worse from 15 dB (2.94
   against 1.61 % at 20 dB).
+- **Ten times fewer steps.** Ours with 6k steps on 100,000 signals (10 % of
+  DeepFreq's 60k steps, all of its data) beats DeepFreq's architecture at
+  its full budget on count and FNR at every SNR from 0 to 50 dB and on
+  Chamfer from 10 dB (level at 5 dB; misses at 20 dB 1.09 against 1.61 %).
+  It is also better than the DeepFreq front-end in our detector at 60k
+  steps on count from 0 dB and FNR from 10 dB. Against the released
+  DeepFreq 2019 models it is level or better on all three metrics from
+  5 dB, better on count at 0-5 dB and on misses at 0-5 and 15 dB. Chamfer
+  is worse at -5 and 0 dB and FNR at -5 dB, the low-SNR weakness of all our
+  models trained on noise down to 0 dB only (the fine-tune below fixes it
+  for the 60k model).
 
 So the symmetric front-end needs about ten times less training data than
 DeepFreq's front-end in the same detector, and reaches DeepFreq's
-full-budget accuracy with 1/6 of the steps and 30 % of the data, but not
-with 10 % of the data. One seed only: the bootstrap covers test noise, not
-training seeds. A 6k-step run of ours (10 % of the steps) on 100,000
-signals is next (`eqdet16x64c_6k_s0`, cloud CPU).
+full-budget accuracy from 5-10 dB up with 10 % of the steps, or with 1/6
+of the steps and 30 % of the data, but not with 10 % of the data. One seed
+only: the bootstrap covers test noise, not training seeds.
 
 ## Training noise down to -5 dB (fine-tune, both systems)
 

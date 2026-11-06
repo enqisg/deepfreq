@@ -276,8 +276,8 @@ fine-tune does not change this.
 ### 6.3 What the symmetries buy
 
 - Round 2 (prov.): same backbone, head and loss, only the front-end changed:
-  4x fewer misses at 20 dB (0.66 vs 2.71 %) and 10x fewer at 30 dB (0.23 vs
-  2.35 %) with 5x fewer parameters.
+  4x fewer misses at 20 dB (0.60 vs 2.61 %) and 12x fewer at 30 dB (0.19 vs
+  2.26 %) with 5x fewer parameters.
 - Round 3, 60k steps, seed 0: the same detector with DeepFreq's front-end
   (1.22M parameters against 0.42M) misses 2.05 % of frequencies at 20 dB
   and 1.55 % at 30 dB, against 0.53 and 0.12 % for ours (3 seeds), and

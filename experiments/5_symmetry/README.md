@@ -67,8 +67,8 @@ FNR % with the true count / count accuracy %:
   the detection loss is also a large part of the faster training.
 
 NOMP (classical, given the true noise level) is a strong baseline that the
-2019 paper did not include: with the true count it misses 0.93% of
-frequencies at 20 dB and 0.18% at 30 dB, fewer than the 2019 DeepFreq
+2019 paper did not include: with the true count it misses 0.88% of
+frequencies at 20 dB and 0.13% at 30 dB, fewer than the 2019 DeepFreq
 weights (1.25%, 0.61%), while DeepFreq is better at 0–10 dB. See
 `results/sym_nomp_crb.json`.
 
@@ -76,24 +76,29 @@ weights (1.25%, 0.61%), while DeepFreq is better at 0–10 dB. See
 
 Test sets (1000 signals per SNR). Each cell: FNR % with the true count /
 count accuracy % / Chamfer distance (bins, own count). Lower FNR and Chamfer
-are better. "+ clean-up" is the joint NLS refinement. NOMP is told the true
-noise level; the detector is not.
+are better. "+ clean-up" is the joint NLS refinement (100 steps). NOMP is
+told the true noise level; the detector is not. The three detector rows and
+NOMP were re-run in round 3 with the final code (`run_round3.sh`, commit
+1df33a7); the detector rows moved by at most 0.5 points.
 
 | Method | Params | 0 dB | 10 dB | 20 dB | 30 dB | 50 dB |
 |---|---|---|---|---|---|---|
-| eqdet16x64 + clean-up | 0.40M | **22.5** / 27.4 / **0.173** | **5.54** / 53.3 / **0.048** | **0.65** / 86.9 / **0.012** | 0.16 / 95.2 / **0.0046** | 0.16 / 95.5 / **0.0032** |
-| eqdet8x64 + clean-up (seed 0) | 0.20M | 22.9 / 26.1 / 0.195 | 5.84 / 50.6 / 0.052 | 0.66 / 86.4 / 0.012 | 0.23 / 92.9 / 0.0054 | 0.19 / 93.0 / 0.0043 |
-| lindet8x64 + clean-up (DeepFreq-style front-end) | 1.00M | 22.8 / 25.6 / 0.173 | 7.13 / 49.2 / 0.056 | 2.71 / 68.0 / 0.024 | 2.35 / 68.7 / 0.022 | 2.29 / 69.3 / 0.020 |
+| eqdet16x64 + clean-up | 0.40M | **23.0** / 27.4 / **0.173** | **5.71** / 53.3 / **0.049** | 0.64 / 86.9 / **0.012** | 0.14 / 95.2 / **0.0039** | 0.12 / 95.5 / **0.0021** |
+| eqdet8x64 + clean-up (seed 0) | 0.20M | 23.3 / 26.1 / 0.196 | 6.01 / 50.6 / 0.053 | **0.60** / 86.4 / 0.012 | 0.19 / 92.9 / 0.0047 | 0.17 / 93.0 / 0.0031 |
+| lindet8x64 + clean-up (DeepFreq-style front-end) | 1.00M | 23.3 / 25.6 / 0.174 | 7.21 / 49.2 / 0.057 | 2.61 / 68.0 / 0.023 | 2.26 / 68.7 / 0.020 | 2.23 / 69.3 / 0.018 |
 | DeepFreq 2019 (FR + FC model) | 1.05M FR + FC | 23.1 / 22.3 / 0.203 | 6.16 / 42.6 / 0.066 | 1.25 / 61.6 / 0.033 | 0.61 / 64.1 / 0.026 | 0.51 / 64.7 / 0.026 |
 | Improved DeepFreq (E6) | | 23.4 / **29.7** / 0.182 | 6.18 / **57.0** / 0.052 | 1.00 / 84.4 / 0.015 | 0.47 / 92.6 / 0.0066 | 0.47 / **96.3** / 0.0051 |
 | NOMP (true noise level) | – | 30.5 / 17.0 / 0.274 | 8.47 / 45.1 / 0.056 | 0.88 / **87.0** / 0.014 | **0.13** / **98.1** / 0.0054 | **0.10** / 93.6 / 0.0044 |
 
 - The 0.4M-parameter detector has the lowest Chamfer distance of all
-  methods at every SNR and the fewest misses from 0 to 20 dB.
+  methods at every SNR and the fewest misses at 0 and 10 dB (at 0 dB only
+  just: 23.0 against 23.1 % for DeepFreq 2019); at 20 dB the smaller
+  eqdet8x64 misses fewest (0.60 %).
 - Same backbone and loss, only the front-end changed: the symmetry-aware
-  one misses 4× fewer frequencies at 20 dB (0.66 vs 2.71 %) and 10× fewer
-  at 30 dB (0.23 vs 2.35 %), with 5× fewer parameters. Two seeds of
-  eqdet8x64 agree within about 0.1 points.
+  one misses 4× fewer frequencies at 20 dB (0.60 vs 2.61 %) and 12× fewer
+  at 30 dB (0.19 vs 2.26 %), with 5× fewer parameters. Two seeds of
+  eqdet8x64 agreed within about 0.1 points before the re-run (seed 1 was
+  not re-run).
 - Still behind: counting at 0–10 dB (E6 has a dedicated counter) and NOMP's
   misses and counts at 30 dB and above. Round 3 adds a count head, longer
   training and the likelihood check (`sym_eval_detector.hybrid`) aimed at these.
@@ -462,20 +467,26 @@ to fix this.
 
 `sym_eval_hard_fr.py` runs an FR baseline with our post-processing on the
 robustness sets. Count accuracy % at 10 / 20 / 30 / 50 dB, ours (20k-step
-detector) vs DeepFreq 2019's FR model with the same post-processing:
+detector) vs DeepFreq 2019's FR model with the same post-processing. Ours was
+re-run in round 3 with the final code (commit 1df33a7), which moved its
+counts on the first three sets by up to 3 points (down at 20 and 30 dB on
+the close-frequency sets):
 
 | Set | Ours | DeepFreq 2019 FR + same post-processing |
 |---|---|---|
-| frequencies 0.5 bins apart | 44.7 / 64.3 / 82.4 / 63.2 | 42.4 / 61.9 / 76.6 / 61.2 |
-| 0.25 bins apart | 35.1 / 53.1 / 66.5 / 48.8 | 37.2 / 49.0 / 61.2 / 51.2 |
-| 30 dB amplitude range | 39.7 / 74.6 / 98.8 / 97.9 | 40.2 / 70.3 / 93.3 / 93.8 |
+| frequencies 0.5 bins apart | 44.7 / 62.0 / 79.7 / 63.1 | 42.4 / 61.9 / 76.6 / 61.2 |
+| 0.25 bins apart | 35.1 / 49.9 / 63.4 / 49.8 | 37.2 / 49.0 / 61.2 / 51.2 |
+| 30 dB amplitude range | 39.7 / 72.5 / 98.4 / 98.1 | 40.2 / 70.3 / 93.3 / 93.8 |
 | coloured noise (AR(1), 0.8) | **15.7 / 53.7 / 87.3** / 90.7 | **25.2 / 66.5 / 91.5** / 89.0 |
 | spikes | 36.2 / 40.5 / 40.3 / 40.0 | 34.9 / 39.6 / 40.9 / 40.6 |
 
-Ours is ahead on close frequencies (20–40 dB) and the wide amplitude range,
-level on spikes (slightly fewer misses and lower Chamfer), and **behind on
-coloured noise at 10–30 dB**. On pure noise scaled to signal power, our
-detector fires 1.2 times per signal on white noise but 9.1 times on AR(1)
+Ours is ahead on frequencies 0.5 bins apart (level at 20 dB) and on the wide
+amplitude range from 20 dB, slightly ahead at 0.25 bins from 20 to 40 dB (1
+to 2 points) but behind there at 10 and 50 dB, with fewer misses and lower
+Chamfer on these three sets from 10 dB (one exception: misses at 0.25 bins,
+40 dB, 25.05 against 24.88 %). It is level on spikes (slightly fewer misses
+and lower Chamfer), and **behind on coloured noise at 10–30 dB**. On pure
+noise scaled to signal power, our detector fires 1.2 times per signal on white noise but 9.1 times on AR(1)
 noise, while DeepFreq's FR model fires about 9.5 times on both: ours has
 learned to tell white noise from sinusoids, and that cue does not carry over
 to strongly coloured noise (AR(1) noise near 0 Hz looks like a narrow band of
@@ -544,18 +555,19 @@ Robustness sets (`hard_<set>_valse.json`), count % / FNR %:
 
 | Set | SNR | VALSE | DeepFreq 2019 FR + same post-processing | ours (20k) |
 |---|---|---|---|---|
-| 0.5 bins apart | 20 dB | 66.5 / 10.5 | 61.9 / 12.0 | 64.3 / 11.3 |
-| 0.5 bins apart | 50 dB | 40.9 / 14.4 | 61.2 / 10.3 | 63.2 / 9.47 |
-| 0.25 bins apart | 20 dB | 54.4 / 23.8 | 49.0 / 27.9 | 53.1 / 27.5 |
-| 0.25 bins apart | 30 dB | 57.3 / 21.5 | 61.2 / 25.3 | 66.5 / 25.2 |
-| 30 dB amplitude range | 30 dB | 79.2 / 2.56 | 93.3 / 1.27 | 98.8 / 0.33 |
+| 0.5 bins apart | 20 dB | 66.5 / 10.5 | 61.9 / 12.0 | 62.0 / 11.3 |
+| 0.5 bins apart | 50 dB | 40.9 / 14.4 | 61.2 / 10.3 | 63.1 / 9.47 |
+| 0.25 bins apart | 20 dB | 54.4 / 23.8 | 49.0 / 27.9 | 49.9 / 27.5 |
+| 0.25 bins apart | 30 dB | 57.3 / 21.5 | 61.2 / 25.3 | 63.4 / 25.2 |
+| 30 dB amplitude range | 30 dB | 79.2 / 2.56 | 93.3 / 1.27 | 98.4 / 0.33 |
 | coloured | 20 dB | 23.4 / 4.89 | 66.5 / 1.35 | 53.7 / 2.27 |
 | spikes | 30 dB | 32.1 / 16.5 | 40.9 / 14.1 | 40.3 / 12.4 |
 
 VALSE resolves frequencies 0.25 bins apart better than both learned models
-when it is told the count (FNR 21–24 % against 25–28 % at 20–30 dB), and is
-close to them at 0.5 bins up to 20 dB. It assumes white noise, and coloured noise
-hurts it more than either learned model.
+when it is told the count (FNR 21–24 % against 25–28 % at 20–30 dB), and at
+0.5 bins it is also better at 20 dB (count 66.5 against 62.0 % for ours) but
+far worse at 50 dB. It assumes white noise, and coloured noise hurts it more
+than either learned model.
 
 ## A learned start for VALSE, and VALSE as a high-SNR clean-up
 

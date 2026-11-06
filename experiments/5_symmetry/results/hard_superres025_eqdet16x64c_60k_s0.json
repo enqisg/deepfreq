@@ -12,25 +12,25 @@
    "E6 system": {
     "fnr_oracle": 57.086825396825404,
     "count_acc": 24.9,
-    "chamfer": 0.1541236807756657,
-    "median_err": 0.2513783374405332
+    "chamfer": 0.1541236930847578,
+    "median_err": 0.25137828663176487
    },
    "NOMP (true noise power)": {
     "fnr_oracle": 60.27337301587306,
     "count_acc": 15.4,
-    "chamfer": 0.17245264558695003,
-    "median_err": 0.711814388040577
+    "chamfer": 0.17245264559306878,
+    "median_err": 0.7118143569957547
    },
    "Symmetry-aware detector + checks": {
     "fnr_oracle": 57.94361111111116,
     "count_acc": 20.8,
-    "chamfer": 0.1455813967967988,
+    "chamfer": 0.145581396937916,
     "median_err": 0.2625614404678345
    },
    "Symmetry-aware detector, count head + checks": {
     "fnr_oracle": 57.94361111111116,
     "count_acc": 27.400000000000002,
-    "chamfer": 0.17537642187166785,
+    "chamfer": 0.17537642191057967,
     "median_err": 0.24801865220069885
    }
   },
@@ -44,25 +44,25 @@
    "E6 system": {
     "fnr_oracle": 38.96658730158725,
     "count_acc": 36.8,
-    "chamfer": 0.05003666382591284,
-    "median_err": 0.1256838880397848
+    "chamfer": 0.05003666476920504,
+    "median_err": 0.12568380480040275
    },
    "NOMP (true noise power)": {
     "fnr_oracle": 38.05912698412697,
     "count_acc": 31.3,
-    "chamfer": 0.05034066422185228,
-    "median_err": 0.13132316425144008
+    "chamfer": 0.050340664281900004,
+    "median_err": 0.13132317349506817
    },
    "Symmetry-aware detector + checks": {
     "fnr_oracle": 37.50496031746026,
     "count_acc": 37.7,
-    "chamfer": 0.04882684841040464,
+    "chamfer": 0.048826848290147606,
     "median_err": 0.11857599020004272
    },
    "Symmetry-aware detector, count head + checks": {
     "fnr_oracle": 37.50496031746026,
     "count_acc": 37.6,
-    "chamfer": 0.04893951566626492,
+    "chamfer": 0.04893951547569304,
     "median_err": 0.11811107397079468
    }
   },
@@ -76,26 +76,26 @@
    "E6 system": {
     "fnr_oracle": 31.009841269841257,
     "count_acc": 46.0,
-    "chamfer": 0.03212010417626291,
-    "median_err": 0.08253959534441635
+    "chamfer": 0.03212010586577552,
+    "median_err": 0.08253978676437956
    },
    "NOMP (true noise power)": {
     "fnr_oracle": 26.923849206349182,
     "count_acc": 50.0,
-    "chamfer": 0.0272627546899105,
-    "median_err": 0.06116541682981147
+    "chamfer": 0.02726275467852822,
+    "median_err": 0.06116541714453749
    },
    "Symmetry-aware detector + checks": {
     "fnr_oracle": 27.374285714285694,
     "count_acc": 50.7,
-    "chamfer": 0.02559716746395814,
-    "median_err": 0.05997275654705536
+    "chamfer": 0.025597167135955345,
+    "median_err": 0.05997275405293934
    },
    "Symmetry-aware detector, count head + checks": {
     "fnr_oracle": 27.374285714285694,
     "count_acc": 50.4,
-    "chamfer": 0.025686691683167156,
-    "median_err": 0.06012803373968978
+    "chamfer": 0.02568669136686737,
+    "median_err": 0.06012803148966739
    }
   },
   "30": {
@@ -108,26 +108,26 @@
    "E6 system": {
     "fnr_oracle": 29.895952380952366,
     "count_acc": 46.7,
-    "chamfer": 0.02843041671238191,
-    "median_err": 0.07298368415072642
+    "chamfer": 0.028430417041407516,
+    "median_err": 0.07298369999361176
    },
    "NOMP (true noise power)": {
     "fnr_oracle": 24.291468253968237,
     "count_acc": 64.7,
-    "chamfer": 0.026570008292798895,
-    "median_err": 0.038810605930456044
+    "chamfer": 0.02657000827096943,
+    "median_err": 0.038810571850333986
    },
    "Symmetry-aware detector + checks": {
     "fnr_oracle": 25.45436507936508,
     "count_acc": 62.8,
-    "chamfer": 0.022762379793619107,
-    "median_err": 0.03869533758267263
+    "chamfer": 0.022762380231253983,
+    "median_err": 0.03869533742413278
    },
    "Symmetry-aware detector, count head + checks": {
     "fnr_oracle": 25.45436507936508,
     "count_acc": 63.1,
-    "chamfer": 0.022662611274770848,
-    "median_err": 0.037365567872407746
+    "chamfer": 0.022662610961641363,
+    "median_err": 0.03736557162764276
    }
   },
   "40": {
@@ -140,26 +140,26 @@
    "E6 system": {
     "fnr_oracle": 29.715238095238085,
     "count_acc": 48.199999999999996,
-    "chamfer": 0.027530902888083936,
-    "median_err": 0.07074095801788693
+    "chamfer": 0.027530906039416932,
+    "median_err": 0.07074095403870606
    },
    "NOMP (true noise power)": {
     "fnr_oracle": 23.548531746031735,
     "count_acc": 58.4,
-    "chamfer": 0.036476525746111876,
-    "median_err": 0.03287126071547242
+    "chamfer": 0.03647652569446551,
+    "median_err": 0.032871260766287325
    },
    "Symmetry-aware detector + checks": {
     "fnr_oracle": 24.784801587301587,
     "count_acc": 58.099999999999994,
-    "chamfer": 0.02729605567781342,
-    "median_err": 0.032189624016232266
+    "chamfer": 0.02729605542888979,
+    "median_err": 0.03218962737701059
    },
    "Symmetry-aware detector, count head + checks": {
     "fnr_oracle": 24.784801587301587,
     "count_acc": 58.599999999999994,
-    "chamfer": 0.02743345337812918,
-    "median_err": 0.03198761020967167
+    "chamfer": 0.02743345323516714,
+    "median_err": 0.03198758321905082
    }
   },
   "50": {
@@ -172,26 +172,26 @@
    "E6 system": {
     "fnr_oracle": 29.58460317460316,
     "count_acc": 49.3,
-    "chamfer": 0.027356192092878377,
-    "median_err": 0.07017968992259482
+    "chamfer": 0.02735618994685485,
+    "median_err": 0.07017966132783493
    },
    "NOMP (true noise power)": {
     "fnr_oracle": 23.819722222222207,
     "count_acc": 45.0,
-    "chamfer": 0.048987431108130884,
-    "median_err": 0.03218824563115397
+    "chamfer": 0.04898743110441536,
+    "median_err": 0.032188246224135186
    },
    "Symmetry-aware detector + checks": {
     "fnr_oracle": 24.765952380952385,
     "count_acc": 52.7,
-    "chamfer": 0.03427920947754787,
-    "median_err": 0.030856860035466394
+    "chamfer": 0.0342792090244272,
+    "median_err": 0.0308568602278958
    },
    "Symmetry-aware detector, count head + checks": {
     "fnr_oracle": 24.765952380952385,
     "count_acc": 52.400000000000006,
-    "chamfer": 0.03427009578766677,
-    "median_err": 0.031529458724433024
+    "chamfer": 0.03427009536704911,
+    "median_err": 0.03152945624191883
    }
   }
  }

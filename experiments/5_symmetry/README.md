@@ -190,9 +190,60 @@ threshold count; row above. Paired bootstrap, seed 0 against seed 0:
 
 So at 60k steps, as at 20k, the gain comes from the front-end, not from the
 rest of the detector. The other two cells of the 2x2 ablation (phase only,
-shift only) are round 4.
+shift only) are in the next section.
 
-## Data efficiency (10k steps, 3,000 to 100,000 training signals, seed 0; and 6k steps)
+## Round 4: symmetry ablation (60k steps, seed 0)
+
+Same backbone, heads, loss, data and 60k steps; only the front-end changes
+(`sym_models.py`): neither symmetry (`lindet16x64c`, DeepFreq's learned
+linear front-end), phase only (`cpxdet16x64c`, cResFreq's front-end: a
+learned complex matrix, then the modulus), shift only (`rawdet16x64c`: our
+learned windows and FFT, keeping the raw real and imaginary parts, so the
+global phase is not removed) and both (`eqdet16x64c`, ours). `cpxdet` and
+`rawdet` were trained on the iMac (`run_round4.sh`) and scored on the cloud
+CPU with the same scripts as every other row (`sym_eval_detector.py`,
+`sym_stats.py`, `sym_count_pick.py`). Validation picks the threshold count
+for phase only (73.3 against 69.0 %) and the count head for shift only
+(76.6 against 76.1 %). Per-signal means, count accuracy % / Chamfer (bins) /
+FNR % (true count given):
+
+| Front-end (parameters) | -5 dB | 0 dB | 10 dB | 20 dB | 30 dB | 50 dB |
+|---|---|---|---|---|---|---|
+| neither (1.22M) | 10.8 / 1.415 / 48.3 | 27.8 / 0.172 / 23.4 | 50.1 / 0.055 / 6.93 | 84.2 / 0.015 / 2.05 | 95.8 / 0.005 / 1.55 | 93.4 / 0.004 / 1.51 |
+| phase only (1.22M) | 11.1 / 1.222 / 47.3 | 27.8 / 0.170 / 23.2 | 53.1 / 0.052 / 6.26 | 87.4 / 0.013 / 1.16 | 97.6 / 0.004 / 0.79 | 95.4 / 0.003 / 0.69 |
+| shift only (0.42M) | 10.8 / 1.685 / 57.4 | 32.2 / 0.188 / 23.2 | 58.5 / 0.050 / 5.57 | 89.6 / 0.011 / 0.43 | 99.6 / 0.003 / 0.08 | 98.9 / 0.001 / 0.09 |
+| both, ours (0.42M) | 10.8 / 1.621 / 55.5 | 31.3 / 0.192 / 23.2 | 58.4 / 0.052 / 5.65 | 89.5 / 0.012 / 0.51 | 99.6 / 0.003 / 0.08 | 98.6 / 0.001 / 0.05 |
+
+Paired bootstrap (one-sided p < 0.05), seed 0 against seed 0:
+
+- **Shift symmetry does the work.** Shift only beats neither on count from
+  0 dB, FNR from 5 dB and Chamfer from 10 dB (misses at 20 dB 0.43 against
+  2.05 %, at 30 dB 0.08 against 1.55 %), and beats phase only on count from
+  0 dB, FNR from 5 dB and Chamfer from 10 dB. Both beats phase only on count
+  from 0 dB, FNR from 10 dB and Chamfer from 15 dB.
+- **Phase symmetry helps only without shift symmetry.** Phase only beats
+  neither on all three metrics from 10 dB (misses at 20 dB 1.16 against
+  2.05 %) and on Chamfer and FNR at -5 dB; its Chamfer is worse at 5 dB.
+  On top of shift symmetry it adds nothing measurable: both and shift only
+  are level at almost every SNR. Both is better at -5 dB (Chamfer 1.621
+  against 1.685, FNR 55.5 against 57.4 %) and on count at 35 dB; shift only
+  is better on Chamfer at 10-15 dB and FNR at 15 dB.
+- **Low SNR.** The two front-ends with shift symmetry have worse Chamfer at
+  -5 and 0 dB and worse FNR at -5 dB than the two without, the low-SNR
+  weakness of our models trained on noise down to 0 dB only (see the
+  fine-tune below).
+
+So the gain over DeepFreq's front-end comes from frequency-shift
+equivariance. Removing the global phase, the symmetry cResFreq builds in,
+cuts DeepFreq's front-end's misses about 2x on its own (1.8x at 20 dB, 2.0x
+at 30 dB); shift equivariance cuts them 4.8x at 20 dB and 19x at 30 dB, with
+a third of the parameters, and phase invariance adds nothing measurable on
+top of it except at -5 dB. One seed per cell (both: seed 0
+of three), so the small differences between shift only and both are not
+settled; a test of whether phase invariance helps when data is scarce
+(10k steps on 3,000 and 10,000 signals) is running on the cloud.
+
+## Data efficiency (10k steps, 3,000 to 100,000 training signals, seed 0; and 6k steps, 3 seeds)
 
 Ours (`eqdet16x64c`) and the same detector with DeepFreq's front-end
 (`lindet16x64c`), each trained for 10k steps (batch 256, lr 1e-3) on a fixed
@@ -203,12 +254,15 @@ count threshold for ours at 3k and 10k signals and for every DeepFreq
 front-end model, the count head for ours at 30k and 100k. Per-signal means
 from `sym_stats.py`: count accuracy % / Chamfer (bins) / FNR % (true count
 given). Italic rows are full-budget references: 60k steps on 100,000
-signals. The 6k-step row (10 % of DeepFreq's steps, 100,000 signals) was
+signals. The 6k-step rows (10 % of DeepFreq's steps, 100,000 signals) were
 trained on the cloud CPU (`sym_train.py eqdet16x64c --steps 6000 --ntrain
-100000 --tag _6k`, about 1.4 h, then `sym_eval_detector.py`, `sym_stats.py`
-and `sym_count_pick.py` as for the other rows); the count head
-and the count threshold tie on validation (75.1 against 75.0 %), and the
-head is used.
+100000 --tag _6k --seed 0|1|2`, about 1.4 h each, then `sym_eval_detector.py`,
+`sym_stats.py` and `sym_count_pick.py` as for the other rows). Validation
+picks the count head for all three seeds (75.1 against 75.0 %, 74.8 against
+73.8 % and 74.2 against 73.9 %). The first 6k row is seed 0, the second the
+mean of seeds 0-2; across seeds the standard deviation is at most 0.9
+points of count accuracy, 0.001 bins of Chamfer and 0.11 points of FNR from
+0 dB up (0.053 bins and 1.9 points at -5 dB).
 
 | System (10k steps unless marked) | -5 dB | 0 dB | 10 dB | 20 dB | 30 dB | 50 dB |
 |---|---|---|---|---|---|---|
@@ -217,6 +271,7 @@ head is used.
 | ours, 30,000 signals | 10.8 / 1.872 / 58.9 | 30.9 / 0.203 / 23.7 | 57.6 / 0.052 / 6.13 | 87.8 / 0.012 / 0.99 | 97.9 / 0.003 / 0.57 | 96.1 / 0.002 / 0.53 |
 | ours, 100,000 signals | 10.8 / 1.848 / 58.4 | 31.2 / 0.204 / 23.3 | 55.7 / 0.054 / 6.24 | 87.9 / 0.012 / 0.88 | 98.5 / 0.003 / 0.51 | 96.3 / 0.002 / 0.41 |
 | ours, 100,000 signals, **6k steps** | 10.8 / 1.924 / 63.4 | 30.7 / 0.205 / 23.6 | 55.8 / 0.055 / 6.51 | 88.1 / 0.012 / 1.09 | 98.6 / 0.003 / 0.53 | 96.6 / 0.002 / 0.50 |
+| ours, 100,000 signals, **6k steps, mean of 3 seeds** | 10.8 / 1.863 / 61.3 | 31.1 / 0.205 / 23.7 | 56.3 / 0.054 / 6.41 | 87.7 / 0.012 / 1.12 | 97.9 / 0.004 / 0.59 | 95.8 / 0.002 / 0.53 |
 | DeepFreq front-end, 3,000 signals | 10.9 / 1.199 / 56.6 | 11.9 / 0.405 / 35.8 | 36.6 / 0.146 / 25.67 | 45.2 / 0.130 / 24.79 | 48.7 / 0.124 / 24.55 | 45.1 / 0.126 / 24.40 |
 | DeepFreq front-end, 10,000 signals | 11.0 / 1.148 / 49.1 | 23.5 / 0.225 / 28.5 | 39.9 / 0.101 / 16.32 | 63.1 / 0.058 / 14.25 | 69.5 / 0.050 / 14.39 | 67.0 / 0.049 / 14.15 |
 | DeepFreq front-end, 30,000 signals | 11.0 / 1.299 / 47.1 | 23.7 / 0.183 / 24.3 | 41.3 / 0.079 / 9.75 | 72.5 / 0.029 / 6.87 | 81.7 / 0.020 / 6.76 | 81.2 / 0.018 / 6.67 |
@@ -226,7 +281,8 @@ head is used.
 | *DeepFreq architecture, 60k steps, + pp* | 10.7 / 1.292 / 47.7 | 26.4 / 0.183 / 24.5 | 50.7 / 0.057 / 7.29 | 85.6 / 0.014 / 1.61 | 96.3 / 0.004 / 0.95 | 93.0 / 0.004 / 1.02 |
 | *DeepFreq 2019 FR + pp* | 10.8 / 1.056 / 47.4 | 27.4 / 0.182 / 24.5 | 54.4 / 0.053 / 6.45 | 87.8 / 0.013 / 1.13 | 97.8 / 0.004 / 0.54 | 96.4 / 0.002 / 0.42 |
 
-Paired bootstrap (one-sided p < 0.05), seed 0 against seed 0:
+Paired bootstrap (one-sided p < 0.05), seed 0 against seed 0 (for the 6k
+run, each of its three seeds against seed 0 of the other system):
 
 - **Same data, same steps.** At every data size ours counts better and
   misses fewer frequencies at every SNR from 0 to 50 dB, with lower Chamfer
@@ -252,21 +308,27 @@ Paired bootstrap (one-sided p < 0.05), seed 0 against seed 0:
   against 1.61 % at 20 dB).
 - **Ten times fewer steps.** Ours with 6k steps on 100,000 signals (10 % of
   DeepFreq's 60k steps, all of its data) beats DeepFreq's architecture at
-  its full budget on count and FNR at every SNR from 0 to 50 dB and on
-  Chamfer from 10 dB (level at 5 dB; misses at 20 dB 1.09 against 1.61 %).
-  It is also better than the DeepFreq front-end in our detector at 60k
-  steps on count from 0 dB and FNR from 10 dB. Against the released
-  DeepFreq 2019 models it is level or better on all three metrics from
-  5 dB, better on count at 0-5 dB and on misses at 0-5 and 15 dB. Chamfer
-  is worse at -5 and 0 dB and FNR at -5 dB, the low-SNR weakness of all our
-  models trained on noise down to 0 dB only (the fine-tune below fixes it
-  for the 60k model).
+  its full budget on FNR at every SNR from 0 to 50 dB and on Chamfer from
+  10 dB (level at 5 dB) in all three seeds (misses at 20 dB 1.09 / 1.19 /
+  1.09 % against 1.61 %). Count is better at every SNR from 0 dB in seed 0
+  and at all but one (45 dB in seed 1, 30 dB in seed 2, level there) in the
+  others. Against the DeepFreq front-end in our detector at 60k steps, all
+  three seeds are better on FNR from 10 dB and on Chamfer from 15 dB, and
+  on count from 0 dB except one level SNR each in seeds 1 (45 dB) and 2
+  (5 dB). Against the released DeepFreq 2019 models every seed is level or
+  better on all three metrics from 5 dB, better on count at 0-5 dB (seed 2
+  to 15 dB) and on misses at 0-5 and 15 dB. Chamfer is worse at -5 and 0 dB
+  and FNR at -5 dB in every seed, the low-SNR weakness of all our models
+  trained on noise down to 0 dB only (the fine-tune below fixes it for the
+  60k model).
 
 So the symmetric front-end needs about ten times less training data than
 DeepFreq's front-end in the same detector, and reaches DeepFreq's
 full-budget accuracy from 5-10 dB up with 10 % of the steps, or with 1/6
-of the steps and 30 % of the data, but not with 10 % of the data. One seed
-only: the bootstrap covers test noise, not training seeds.
+of the steps and 30 % of the data, but not with 10 % of the data. The data
+sizes have one seed each, and their bootstrap covers test noise, not
+training seeds. The 6k-step result holds in all three seeds, which agree
+closely.
 
 ## Training noise down to -5 dB (fine-tune, both systems)
 

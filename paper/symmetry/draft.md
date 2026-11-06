@@ -21,7 +21,10 @@ both locate and count the sinusoids, replacing DeepFreq's two networks. A
 short least-squares refinement and a penalised-likelihood check finish the
 estimate. With everything else fixed, the symmetric front-end misses 4-13x
 fewer frequencies at 20-30 dB than DeepFreq's front-end, with a third of the
-parameters. The full detector (2.5x smaller than DeepFreq's FR model) comes
+parameters. A 2x2 ablation shows that the gain comes from shift
+equivariance: phase invariance alone (cResFreq's front-end) halves the
+misses, shift equivariance alone cuts them 5-19x, and phase invariance adds
+nothing measurable on top of it (1 seed per cell). The full detector (2.5x smaller than DeepFreq's FR model) comes
 within 15 % of the Cramér-Rao bound from 10 dB. Against DeepFreq 2019 given
 the same post-processing, it has significantly lower Chamfer distance and
 fewer missed frequencies from 0 dB and better counts from 15 dB; it also
@@ -33,8 +36,8 @@ misses fewer frequencies at every SNR from -5 to 50 dB (3 seeds). With the
 same training steps, the symmetric front-end needs about ten times less
 training data than DeepFreq's front-end in the same detector, and with 1/6
 of the steps and 30 % of the data, or with 10 % of the steps, it beats
-DeepFreq's architecture trained at full budget from 5-10 dB up (1 seed,
-prov.). TODO: augmentation control, real data.
+DeepFreq's architecture trained at full budget from 5-10 dB up (3 seeds
+for the steps result, 1 seed for the data results). TODO: augmentation control, real data.
 
 ## 1 Introduction
 
@@ -284,8 +287,21 @@ fine-tune does not change this.
   counts worse from 0 dB (84.2 against 89.2 % at 20 dB). It is only level
   with DeepFreq's own architecture trained the same way, so the gain comes
   from the front-end, not from the backbone, heads or post-processing.
-- TODO round 4: the other two cells of the 2x2 ablation (phase only, shift
-  only), 60k steps (`sym_summary.py ablation`).
+- Round 4, the 2x2 ablation (60k steps, seed 0 per cell): same backbone,
+  heads, loss and data, with the front-end changed to neither symmetry
+  (DeepFreq's linear front-end, 1.22M parameters), phase only (cResFreq's
+  complex linear front-end and modulus, 1.22M), shift only (our learned
+  windows and FFT, raw real and imaginary parts, 0.42M) or both (ours,
+  0.42M). Misses at 20 / 30 dB: 2.05 / 1.55 %, 1.16 / 0.79 %, 0.43 / 0.08 %
+  and 0.51 / 0.08 %; count accuracy at 20 dB 84.2, 87.4, 89.6 and 89.5 %.
+  Shift only beats neither and phase only on count from 0 dB, FNR from
+  5 dB and Chamfer from 10 dB; phase only beats neither from 10 dB; both and
+  shift only are level at almost every SNR (both better at -5 dB, shift
+  only better on Chamfer at 10-15 dB). So shift equivariance is the
+  symmetry that matters; removing the global phase helps only when shift
+  equivariance is missing. TODO: does phase invariance help with scarce
+  data (shift only and phase only at 10k steps on 3k and 10k signals,
+  running); more seeds per cell.
 - Round 3, data efficiency (10k steps on 3k to 100k training signals,
   seed 0): with the same data and steps, ours counts better and misses
   fewer frequencies than the DeepFreq-front-end detector at every SNR from
@@ -301,8 +317,10 @@ fine-tune does not change this.
   on count and misses at every SNR from 0 dB and on Chamfer from 10 dB
   (misses at 20 dB 1.09 against 1.61 %), and is level or better than the
   released DeepFreq 2019 models on all three from 5 dB. Chamfer is worse
-  at -5 and 0 dB (training noise only down to 0 dB, see §6.1b). TODO: more
-  seeds.
+  at -5 and 0 dB (training noise only down to 0 dB, see §6.1b). All three
+  6k seeds agree (misses at 20 dB 1.09 / 1.19 / 1.09 %; count level with
+  DeepFreq's architecture at one SNR in two seeds). The data sizes have one
+  seed each.
 - TODO round 5: is augmentation enough? DeepFreq's front-end with random
   frequency shifts on every training signal.
 

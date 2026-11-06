@@ -23,8 +23,9 @@ estimate. With everything else fixed, the symmetric front-end misses 4-13x
 fewer frequencies at 20-30 dB than DeepFreq's front-end, with a third of the
 parameters. A 2x2 ablation shows that the gain comes from shift
 equivariance: phase invariance alone (cResFreq's front-end) halves the
-misses, shift equivariance alone cuts them 5-19x, and phase invariance adds
-nothing measurable on top of it (1 seed per cell). The full detector (2.5x smaller than DeepFreq's FR model) comes
+misses at 20-30 dB, shift equivariance alone cuts them 5-19x, and phase
+invariance adds to it only when training data is scarce (1.4x fewer misses
+with 3,000 training signals, none with 100,000; 1 seed per cell). The full detector (2.5x smaller than DeepFreq's FR model) comes
 within 15 % of the Cramér-Rao bound from 10 dB. Against DeepFreq 2019 given
 the same post-processing, it has significantly lower Chamfer distance and
 fewer missed frequencies from 0 dB and better counts from 15 dB; it also
@@ -299,9 +300,19 @@ fine-tune does not change this.
   shift only are level at almost every SNR (both better at -5 dB, shift
   only better on Chamfer at 10-15 dB). So shift equivariance is the
   symmetry that matters; removing the global phase helps only when shift
-  equivariance is missing. TODO: does phase invariance help with scarce
-  data (shift only and phase only at 10k steps on 3k and 10k signals,
-  running); more seeds per cell.
+  equivariance is missing, given enough data.
+- Round 4 with scarce data (10k steps on 3k and 10k training signals,
+  seed 0 per cell): misses at 20 dB with 3k signals are 24.79 % (neither),
+  17.47 % (phase only), 7.40 % (shift only) and 5.30 % (both); with 10k
+  signals 14.25, 8.83, 3.04 and 2.94 %. Shift only beats neither and
+  phase only on all three metrics from 0 dB at 3k signals. Both beats shift
+  only on Chamfer at all SNRs and on FNR from 0 dB at 3k signals, on FNR
+  from 25 dB at 10k (2.24 against 2.77 % at 30 dB) and not at 100k. So
+  on top of shift equivariance, phase invariance acts like extra data and
+  its value fades as data grows, while the gain from shift equivariance
+  does not (3.4x, 4.7x and 4.8x fewer misses than neither at 3k, 10k and
+  100k signals, 20 dB; phase only 1.4x, 1.6x and 1.8x). The 100k cells had
+  60k steps. TODO: more seeds per cell.
 - Round 3, data efficiency (10k steps on 3k to 100k training signals,
   seed 0): with the same data and steps, ours counts better and misses
   fewer frequencies than the DeepFreq-front-end detector at every SNR from

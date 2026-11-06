@@ -240,8 +240,63 @@ at 30 dB); shift equivariance cuts them 4.8x at 20 dB and 19x at 30 dB, with
 a third of the parameters, and phase invariance adds nothing measurable on
 top of it except at -5 dB. One seed per cell (both: seed 0
 of three), so the small differences between shift only and both are not
-settled; a test of whether phase invariance helps when data is scarce
-(10k steps on 3,000 and 10,000 signals) is running on the cloud.
+settled. The next section repeats the ablation with scarce data.
+
+## Round 4: symmetry ablation with scarce data (10k steps, 3,000 and 10,000 signals, seed 0)
+
+Shift only and phase only trained for 10k steps (batch 256, lr 1e-3) on the
+same fixed sets of 3,000 and 10,000 training signals as the data-efficiency
+runs below, on the cloud CPU (`sym_train.py <model> --steps 10000 --ntrain
+<n> --seed 0 --tag _n<n>`), and scored with the same scripts. The neither
+and both rows are the round 3 models of the next section. Validation picks
+the threshold count for all eight models. Per-signal means, count accuracy
+% / Chamfer (bins) / FNR % (true count given):
+
+| Front-end, training signals | -5 dB | 0 dB | 10 dB | 20 dB | 30 dB | 50 dB |
+|---|---|---|---|---|---|---|
+| neither, 3,000 | 10.9 / 1.199 / 56.6 | 11.9 / 0.405 / 35.8 | 36.6 / 0.146 / 25.67 | 45.2 / 0.130 / 24.79 | 48.7 / 0.124 / 24.55 | 45.1 / 0.126 / 24.40 |
+| phase only, 3,000 | 10.8 / 1.122 / 49.0 | 17.4 / 0.300 / 30.3 | 38.8 / 0.113 / 18.91 | 55.4 / 0.080 / 17.47 | 58.1 / 0.072 / 17.64 | 55.0 / 0.073 / 17.63 |
+| shift only, 3,000 | 10.8 / 1.662 / 56.5 | 23.0 / 0.252 / 25.6 | 42.5 / 0.074 / 10.94 | 76.6 / 0.023 / 7.40 | 83.5 / 0.014 / 7.13 | 79.2 / 0.014 / 6.94 |
+| both (ours), 3,000 | 10.8 / 1.613 / 57.8 | 24.5 / 0.222 / 24.8 | 45.1 / 0.064 / 9.51 | 79.4 / 0.019 / 5.30 | 88.2 / 0.010 / 4.99 | 86.4 / 0.009 / 4.89 |
+| neither, 10,000 | 11.0 / 1.148 / 49.1 | 23.5 / 0.225 / 28.5 | 39.9 / 0.101 / 16.32 | 63.1 / 0.058 / 14.25 | 69.5 / 0.050 / 14.39 | 67.0 / 0.049 / 14.15 |
+| phase only, 10,000 | 11.0 / 1.145 / 46.5 | 24.1 / 0.187 / 25.4 | 40.6 / 0.080 / 10.93 | 70.8 / 0.030 / 8.83 | 79.1 / 0.023 / 8.48 | 75.5 / 0.022 / 8.54 |
+| shift only, 10,000 | 10.8 / 1.720 / 57.2 | 21.6 / 0.243 / 24.3 | 47.9 / 0.061 / 7.69 | 83.6 / 0.015 / 3.04 | 93.2 / 0.006 / 2.77 | 89.5 / 0.005 / 2.75 |
+| both (ours), 10,000 | 10.8 / 1.783 / 60.1 | 27.2 / 0.203 / 24.1 | 49.6 / 0.055 / 7.28 | 83.8 / 0.015 / 2.94 | 94.3 / 0.006 / 2.24 | 92.0 / 0.004 / 2.12 |
+
+Paired bootstrap (one-sided p < 0.05):
+
+- **Shift symmetry still does most of the work.** At 3,000 signals shift
+  only beats neither and phase only on all three metrics from 0 dB (misses
+  at 20 dB 7.40 against 24.79 and 17.47 %). At 10,000 signals it beats
+  neither on all three from 5 dB and phase only on FNR from 0 dB, Chamfer
+  from 5 dB and count from 10 dB (misses at 20 dB 3.04 against 14.25 and
+  8.83 %).
+- **With scarce data, phase symmetry also helps on top of shift
+  symmetry.** At 3,000 signals both beats shift only on Chamfer at all 12
+  SNRs, on FNR from 0 dB and on count at 5 dB and from 20 dB (misses 5.30
+  against 7.40 % at 20 dB, 4.99 against 7.13 % at 30 dB). At 10,000
+  signals the gap is smaller: both beats shift only on FNR at 5 dB and from
+  25 dB (2.24 against 2.77 % at 30 dB, level at 20 dB), on Chamfer at
+  0-10 dB and on count at 0, 45 and 50 dB. At 100,000 signals and 60k
+  steps (previous section) the two are level at almost every SNR.
+- **Phase only helps without shift symmetry at every data size.** At 3,000
+  signals phase only beats neither on Chamfer and FNR at all 12 SNRs and on
+  count at 10 of 12; at 10,000 signals on FNR at all 12, on Chamfer from
+  0 dB and on count at 9 of 12 (misses at 20 dB 8.83 against 14.25 %).
+- **Low SNR.** At -5 dB the front-ends with shift symmetry have worse
+  Chamfer than the ones without, as at 100,000 signals. Shift only beats
+  both on FNR at -5 dB at 3,000 signals and on Chamfer and FNR at -5 dB at
+  10,000.
+
+So the extra value of phase invariance on top of shift equivariance
+shrinks as data grows: it cuts misses 1.4x at 3,000 signals (20 and 30 dB),
+1.2x at 10,000 signals (30 dB only) and not measurably at 100,000 (60k
+steps). On their own, against DeepFreq's front-end at 20 dB, shift
+equivariance cuts misses 3.4x at 3,000 signals, 4.7x at 10,000 and 4.8x at
+100,000, and phase invariance 1.4x, 1.6x and 1.8x. So phase invariance
+acts like extra data once shift equivariance is in place, while the gain
+from shift equivariance does not close with more data. One seed per cell,
+and the 100,000-signal cells had 60k steps, not 10k.
 
 ## Data efficiency (10k steps, 3,000 to 100,000 training signals, seed 0; and 6k steps, 3 seeds)
 

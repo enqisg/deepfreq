@@ -22,6 +22,10 @@ Above 25 dB, NOMP misses fewer (0.18 % at 30 dB vs 0.47 % for the improved versi
 - The FFT of a 50-sample signal has peaks about one bin wide. Close
   frequencies merge into one peak and weak ones hide under the side lobes
   of strong ones, so the FFT keeps missing about 13 % even without noise.
+  Weak frequencies are the bigger effect: at 50 dB the FFT misses 41 % of
+  frequencies under a quarter of the strongest one's strength, 3 % of those at
+  half strength or more, and 25 % of those within 1.25 bins of a neighbour
+  (11–16 % for wider gaps).
 - MUSIC and ESPRIT need an estimate of the signal's correlation matrix. With only
   50 samples that estimate is poor, so they need much less noise to work well.
 - The FR model was trained on 200,000 example signals, many with close and weak
@@ -52,8 +56,12 @@ bins, however little noise there is. The improved version keeps getting better
 **Possible reasons.**
 - The original FC model levels off at about 65 %. It only sees the FR spectrum,
   where two close or one weak frequency can look like one peak.
-- Fine-tuning helped the FC model a lot. The likely reason is that it was trained again on the
-  FR model's current output, so it adjusted to it.
+- Fine-tuning helped the FC model a lot, and the gain is in the FC model's own
+  weights: the fine-tuned FC model counts 84.5 % correctly at 30 dB even on the
+  original FR model's output (`extra_checks.py`). The spread of its raw count
+  guesses fell from 1.09 to 0.41. A possible (untested) reason: the original FC
+  training had stalled at a learning rate of about 1.5e-7, and fine-tuning
+  restarted it at 1e-4.
 - The new counter in the improved version also uses classical counting clues
   taken directly from the raw signal (eigenvalues), which show frequencies that the
   spectrum hides. So it is better at every SNR.
@@ -73,15 +81,29 @@ version wins because it counts best *and* places frequencies most exactly.
 At −5 dB the noise is stronger than many of the frequencies, so no method can
 find them.
 
-## 5. Fine-tuned vs original: slightly more misses above 25 dB
+## 5. Fine-tuned vs original FR model: slightly less exact
 
-**Result.** 0.74 % vs 0.61 % missed at 30 dB (about 7 extra misses out of ~5,500).
-Equal from 0 to 20 dB.
+**Result.** The fine-tuned FR model's frequency error is 5–10 % larger from
+20 dB up (0.022 vs 0.020 bins at 50 dB); a bootstrap over the 1000 signals says
+this gap is real. It also misses slightly more above 25 dB (0.74 % vs 0.61 % at
+30 dB), but that gap is within chance (95 % range −0.03 to +0.29 points).
+Equal from 0 to 20 dB. Checks: `extra_checks.py`.
 
-**Possible reasons.** Fine-tuning used 10,000 signals (the original used 200,000),
-which can make the model fit that small set. Only about 3 % of training signals
-are as clean as 30 dB, so the FR model shifted towards noisy signals.
-Training further on 100k signals (improved version) fixed this.
+**Possible reasons.**
+- The learning rate stayed high. The original FR training ended at about 7e-8;
+  fine-tuning restarted at 1e-4 and ended at 5e-5, about 700× higher, so the
+  weights never settled.
+- The run was short: about 790 update steps (10 epochs × 79 batches of 128)
+  against about 156,000 originally. Training loss fell (0.0117 → 0.0114) while
+  validation loss stayed at 0.0124, so it fitted its 10,000 signals slightly
+  better without improving in general.
+- The noise mix is **not** a reason: fine-tuning used the same noise setting
+  (gaussian_blind, snr 1.0) as the original training.
+- The loss shows at low noise because there the model's own small errors
+  dominate; at high noise the noise error hides them.
+
+In the improved version, the clean-up step takes misses at 30 dB from 0.74 % to
+0.64 %, and the extra FR training takes them to 0.47 %.
 
 ## 6. Speed
 

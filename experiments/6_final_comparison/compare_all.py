@@ -56,7 +56,8 @@ METHODS = ["DeepFreq (original)", "DeepFreq (fine-tuned)", "DeepFreq (improved)"
 STYLE = {"DeepFreq (original)": ("#1f77b4", "o", "-"), "DeepFreq (fine-tuned)": ("#ff7f0e", "s", "-"),
          "DeepFreq (improved)": ("#2ca02c", "D", "-"), "Periodogram": ("#7f7f7f", "v", "--"),
          "MUSIC": ("#9467bd", "^", "--"), "ESPRIT": ("#8c564b", "<", "--"), "NOMP": ("#d62728", ">", "--"),
-         "CBLasso": ("#e377c2", "x", ":"), "CRB (best possible)": ("black", None, ":")}
+         "CBLasso": ("#e377c2", "x", ":"), "CRB (best possible)": ("black", None, ":"),
+         "FFT only (peak count)": ("#17becf", "*", "-.")}
 
 
 def build_methods():
@@ -215,7 +216,12 @@ def plot_fft(rows, panels):
     is the FFT: |FFT|^2 of the signal zero-padded to the same 1000-point grid as
     the FR model, then the highest peaks are picked (count from MDL)."""
     lines = {"DeepFreq (original)": "DeepFreq (original)", "DeepFreq (fine-tuned)": "DeepFreq (fine-tuned)",
-             "DeepFreq (improved)": "DeepFreq (improved)", "Periodogram": "FFT (zero-padded to 1000 points)"}
+             "DeepFreq (improved)": "DeepFreq (improved)", "Periodogram": "FFT (count from MDL in c, d)"}
+    peak_csv = OUT / "fft_peak_count.csv"   # written by fft_peak_count.py
+    if peak_csv.exists():
+        with open(peak_csv) as fh:
+            rows = rows + list(csv.DictReader(fh))
+        lines["FFT only (peak count)"] = "FFT only (counts its own peaks)"
     fig, axes = plt.subplots(2, 2, figsize=(12, 8.5))
     for ax, (key, label, logy, tag) in zip(axes.flat, panels):
         for m, shown in lines.items():

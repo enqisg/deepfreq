@@ -1,0 +1,13 @@
+snr_db,method,fnr_true_count_percent,median_err_true_count,count_accuracy_percent,chamfer_own_count,mean_count_minus_true
+-5,FFT only (peak count),,,10.8,1.4221521768374272,4.464
+0,FFT only (peak count),,,11.600000000000001,0.9499425527989442,3.506
+5,FFT only (peak count),,,29.2,0.22180991554415144,0.414
+10,FFT only (peak count),,,32.7,0.09266018515586875,-0.745
+15,FFT only (peak count),,,35.8,0.08522303015023087,-0.935
+20,FFT only (peak count),,,33.800000000000004,0.08507737528922352,-0.997
+25,FFT only (peak count),,,35.0,0.08437891172464787,-1.023
+30,FFT only (peak count),,,34.5,0.08351962926318393,-1.019
+35,FFT only (peak count),,,34.300000000000004,0.08441921421122725,-1.014
+40,FFT only (peak count),,,33.900000000000006,0.08425048530647333,-1.019
+45,FFT only (peak count),,,34.1,0.08444244341752108,-1.018
+50,FFT only (peak count),,,33.7,0.08425212368348414,-1.023

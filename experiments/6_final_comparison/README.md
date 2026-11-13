@@ -110,3 +110,20 @@ line against the three DeepFreq versions.
   learned to draw sharp peaks even for close frequencies.
 - The FFT itself has no way to count; here it uses MDL, which is worse than the
   DeepFreq counters below 25 dB and similar above.
+
+## FFT on its own (no MDL)
+
+`fft_peak_count.py` lets the FFT count its own peaks: every peak at least
+0.068 times as tall as the tallest one counts as a frequency (one cut-off for
+all noise levels, picked on 1000 separate validation signals, seed 777). It is
+the cyan line in `fig_fft_vs_deepfreq.png`; in (a) and (b) it is the same as
+the FFT line, since those use the true count.
+
+- Correct count stays at about 34 % from 10 dB up (MDL: 97 % at 50 dB;
+  improved DeepFreq: 96 %). Even the best cut-off chosen separately for each
+  noise level gets at most 37 % on the validation signals.
+- With little noise it counts about 1 too few on average: merged peaks and
+  weak frequencies hidden by side lobes never show up as separate peaks.
+- At 0 dB and below it counts 3–4 too many: noise bumps pass the cut-off.
+- So counting FFT peaks runs into the same resolution and side-lobe limits
+  as finding them; MDL avoids that by working on the raw signal.

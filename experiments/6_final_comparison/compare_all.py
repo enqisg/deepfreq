@@ -209,6 +209,7 @@ def plot():
     plt.savefig(FIG / "fig_e_speed.png", dpi=150)
     plt.close()
     plot_fft(rows, panels)
+    plot_fft_only(rows, panels)
 
 
 def plot_fft(rows, panels):
@@ -237,6 +238,40 @@ def plot_fft(rows, panels):
     fig.legend(h, lab, loc="lower center", ncol=4, fontsize=10)
     fig.tight_layout(rect=(0, 0.06, 1, 1))
     fig.savefig(FIG / "fig_fft_vs_deepfreq.png", dpi=150)
+    plt.close(fig)
+
+
+
+def plot_fft_only(rows, panels):
+    """The three DeepFreq versions against the FFT alone, with no MDL: in (a) and
+    (b) the FFT is given the true count; in (c) and (d) it counts its own peaks
+    (fft_peak_count.py)."""
+    peak_csv = OUT / "fft_peak_count.csv"
+    if not peak_csv.exists():
+        return
+    with open(peak_csv) as fh:
+        own = list(csv.DictReader(fh))
+    fft_rows = [dict(r, method="FFT") for r in rows if r["method"] == "Periodogram"]
+    for r in fft_rows:
+        o = next(x for x in own if x["snr_db"] == r["snr_db"])
+        r["count_accuracy_percent"], r["chamfer_own_count"] = o["count_accuracy_percent"], o["chamfer_own_count"]
+    rows = rows + fft_rows
+    style = dict(STYLE, FFT=STYLE["Periodogram"])
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8.5))
+    for ax, (key, label, logy, tag) in zip(axes.flat, panels):
+        for m in ["DeepFreq (original)", "DeepFreq (fine-tuned)", "DeepFreq (improved)", "FFT"]:
+            x, y = series(rows, m, key)
+            c, mk, ls = style[m]
+            ax.plot(x, y, color=c, marker=mk, linestyle=ls, lw=2.2, ms=4, label=m)
+        if logy:
+            ax.set_yscale("log")
+        ax.set_title(f"({tag}) {label}", fontsize=10)
+        ax.set_xlabel("SNR (dB)")
+        ax.grid(alpha=0.3, which="both")
+    h, lab = axes[0, 0].get_legend_handles_labels()
+    fig.legend(h, lab, loc="lower center", ncol=4, fontsize=10)
+    fig.tight_layout(rect=(0, 0.06, 1, 1))
+    fig.savefig(FIG / "fig_fft_only_vs_deepfreq.png", dpi=150)
     plt.close(fig)
 
 

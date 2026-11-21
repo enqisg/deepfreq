@@ -51,7 +51,7 @@ bins, however little noise there is. The improved version keeps getting better
 ## 3. Counting the frequencies
 
 **Result (correct count at 20 / 50 dB).** Original 61.6 / 64.7 %, fine-tuned
-75.6 / 84.4 %, improved 84.4 / 96.3 %, FFT + MDL 59.6 / 97.0 %, NOMP 86.4 / 76.5 %.
+75.6 / 84.4 %, improved 83.9 / 93.7 %, FFT + MDL 59.6 / 97.0 %, NOMP 86.4 / 76.5 %.
 
 **Possible reasons.**
 - The original FC model levels off at about 65 %. It only sees the FR spectrum,

@@ -58,7 +58,7 @@ Selected numbers (−5 / 0 / 10 / 20 / 30 / 50 dB):
 |---|---|---|---|
 | DeepFreq (original) | 45.8 / 23.1 / 6.16 / 1.25 / 0.61 / 0.51 | 11.8 / 22.3 / 42.6 / 61.6 / 64.1 / 64.7 | 1.05 / 0.203 / 0.066 / 0.033 / 0.026 / 0.026 |
 | DeepFreq (fine-tuned) | 46.1 / 23.3 / 6.19 / 1.24 / 0.74 / 0.62 | 11.1 / 22.4 / 49.3 / 75.6 / 84.1 / 84.4 | 1.09 / 0.205 / 0.057 / 0.022 / 0.013 / 0.013 |
-| DeepFreq (improved) | 45.0 / 23.4 / 6.18 / 1.00 / 0.47 / 0.47 | 10.9 / 29.7 / 57.0 / 84.4 / 92.6 / 96.3 | 1.08 / 0.182 / 0.052 / 0.015 / 0.0066 / 0.0051 |
+| DeepFreq (improved) | 45.0 / 23.4 / 6.18 / 1.00 / 0.47 / 0.47 | 11.7 / 25.0 / 56.4 / 83.9 / 93.4 / 93.7 | 1.03 / 0.198 / 0.052 / 0.015 / 0.0066 / 0.0056 |
 | Periodogram | 45.5 / 29.7 / 14.6 / 13.3 / 13.4 / 13.3 | 9.7 / 11.0 / 28.1 / 59.6 / 86.2 / 97.0 | 0.65 / 0.559 / 0.253 / 0.074 / 0.071 / 0.071 |
 | MUSIC | 52.4 / 38.4 / 18.0 / 7.97 / 4.23 / 1.17 | same as periodogram | 0.69 / 0.557 / 0.245 / 0.047 / 0.028 / 0.011 |
 | ESPRIT | 56.2 / 40.7 / 16.2 / 5.30 / 2.14 / 0.53 | same as periodogram | 0.68 / 0.541 / 0.242 / 0.036 / 0.012 / 0.0034 |
@@ -78,7 +78,7 @@ DeepFreq about 5 ms (original and fine-tuned) and 5.6 ms (improved), NOMP
   which roughly halves the overall error at 20 dB and above. Finding
   frequencies when the count is known is about the same as the original.
 - **The improved version is the best DeepFreq at every SNR from 0 dB up**: it
-  counts best (84 % at 20 dB, 96 % at 50 dB) and, thanks to the clean-up step,
+  counts best (84 % at 20 dB, 94 % at 50 dB) and, thanks to the clean-up step,
   its frequencies are about 7× more exact than the original's at 50 dB. Its
   overall error is the lowest of all methods from 0 to 40 dB (tied with NOMP at
   15–20 dB); only ESPRIT is lower at 45–50 dB.
@@ -120,7 +120,7 @@ the cyan line in `fig_fft_vs_deepfreq.png`; in (a) and (b) it is the same as
 the FFT line, since those use the true count.
 
 - Correct count stays at about 34 % from 10 dB up (MDL: 97 % at 50 dB;
-  improved DeepFreq: 96 %). Even the best cut-off chosen separately for each
+  improved DeepFreq: 94 %). Even the best cut-off chosen separately for each
   noise level gets at most 37 % on the validation signals.
 - With little noise it counts about 1 too few on average: merged peaks and
   weak frequencies hidden by side lobes never show up as separate peaks.

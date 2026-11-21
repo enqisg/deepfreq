@@ -7,7 +7,8 @@ frequencies).  None of these signals were used for training.
 Methods
   DeepFreq (original)   2019 pretrained FR + FC models (pretrained_models/DeepFreq)
   DeepFreq (fine-tuned) your fine-tuned FR + FC models (checkpoint/finetune_experiment, epoch 310)
-  DeepFreq (improved)   E6 system: FR trained further + new counter + clean-up (experiments/4_combined)
+  DeepFreq (improved)   E6 system: FR trained further + new counter + clean-up (experiments/4_combined),
+                        with the new counter's output switched to regression (regression_counter.py)
   Periodogram, MUSIC, ESPRIT   classical; own count from MDL
   NOMP                  classical (2016); own count from a CFAR stop that is told the true noise level
   CBLasso               the DeepFreq authors' saved results (test_dataset/cblasso_results, 0-50 dB only)
@@ -38,12 +39,13 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # experiments/: common.py
 sys.path.insert(1, str(Path(__file__).resolve().parents[1] / "5_symmetry"))
+sys.path.insert(1, str(Path(__file__).resolve().parent))
 from common import (ROOT, EXP, PRETRAINED, FINETUNED, XGRID, MAX_FREQ, load_test_set, to_complex,
                     load_deepfreq, fnr_percent, chamfer, matched_median, esprit, music_peaks,
                     periodogram_peaks, mdl_counts, interp_peaks, nls_refine)
 from e2_counting import run_net
-from e6_compare import load_counter, fusion_counts
-from e6_improved_finetune import FR_PATH, COUNTER_PATH
+from e6_improved_finetune import FR_PATH
+from regression_counter import load_regression_counter, regression_counts
 from sym_baselines import nomp, crb_per_signal, noise_var
 from data import fr
 import util
@@ -65,7 +67,7 @@ def build_methods():
     orig = load_deepfreq(PRETRAINED)
     tuned = load_deepfreq(FINETUNED)
     fr_new = util.load(str(FR_PATH), "fr", cpu)[0].eval()
-    counter = load_counter(COUNTER_PATH)
+    counter = load_regression_counter()
 
     def deepfreq(models):
         def run(signals, snr, counts=None):
@@ -76,7 +78,7 @@ def build_methods():
 
     def improved(signals, snr, counts=None):
         rep, raw = run_net(fr_new, tuned[1], signals)
-        cnt = fusion_counts(counter, signals, rep, raw) if counts is None else counts
+        cnt = regression_counts(counter, signals, rep, raw) if counts is None else counts
         return nls_refine(to_complex(signals), interp_peaks(rep, cnt)), cnt
 
     def classical(locate):

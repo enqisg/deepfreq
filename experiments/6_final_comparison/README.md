@@ -127,3 +127,43 @@ the FFT line, since those use the true count.
 - At 0 dB and below it counts 3–4 too many: noise bumps pass the cut-off.
 - So counting FFT peaks runs into the same resolution and side-lobe limits
   as finding them; MDL avoids that by working on the raw signal.
+
+## Change: the improved version's new counter now uses regression (2026-11-21)
+
+The new counter in the improved version used to pick one of 10 counts
+(classification). That switch was never needed, so it now outputs one number,
+rounded and limited to 1–10, like the original FC model (`regression_counter.py`,
+model in `models/fusion_counter_regression.pt`).
+
+Only these things changed:
+- the counter's last layer: 10 outputs → 1 output;
+- its training loss: cross-entropy → mean squared error;
+- the count: largest of 10 scores → the output rounded and limited to 1–10.
+
+Kept the same: the 41 inputs, the 3 layers (41 → 128 → 128), the training data,
+Adam 1e-3, batch 256, 60 epochs and seed. The fine-tuned version, the extra FR
+training (improvement 3) and the clean-up step (improvement 1) are unchanged.
+
+Necessary steps and what they affect:
+- The counter had to be retrained, because its output layer changed. This is
+  the only training done.
+- `compare_all.py` was rerun to get the new improved numbers. Only the improved
+  rows of `results/comparison.csv` were replaced; every other row was kept from
+  the previous run (saved in `results/comparison_classification_counter.csv`).
+  Reason: NOMP's code in `5_symmetry/` was changed by later work, so a full rerun
+  would also have changed the NOMP numbers.
+- Round-1 results (graphs a, b) of the improved version are identical, since
+  they don't use the counter. Graphs c and d changed:
+
+| SNR | Correct count, classification → regression (%) | Overall error (Chamfer) |
+|---|---|---|
+| −5 dB | 10.9 → 11.7 | 1.075 → 1.030 |
+| 0 dB | 29.7 → 25.0 | 0.182 → 0.198 |
+| 10 dB | 57.0 → 56.4 | 0.0522 → 0.0518 |
+| 20 dB | 84.4 → 83.9 | 0.0149 → 0.0149 |
+| 30 dB | 92.6 → 93.4 | 0.0066 → 0.0066 |
+| 50 dB | 96.3 → 93.7 | 0.0051 → 0.0056 |
+
+The regression counter is about as good overall: slightly worse at 0–5 dB and
+45–50 dB, slightly better at 25–35 dB. It still counts better than the
+fine-tuned FC model at every SNR from 0 dB up.
